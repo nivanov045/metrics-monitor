@@ -18,6 +18,7 @@ type Storage interface {
 	SetCounterMetrics(name string, val metrics.Counter)
 	GetCounterMetrics(name string) (metrics.Counter, bool)
 	GetKnownMetrics() []string
+	IsDbConnected() bool
 }
 
 type service struct {
@@ -160,4 +161,8 @@ func createHash(key []byte, m metrics.MetricsInterface) []byte {
 
 func (ser *service) GetKnownMetrics() []string {
 	return ser.storage.GetKnownMetrics()
+}
+
+func (ser *service) IsDbConnected() bool {
+	return ser.storage.IsDbConnected()
 }

@@ -14,6 +14,7 @@ type Config struct {
 	StoreFile     string        `env:"STORE_FILE"`
 	Restore       bool          `env:"RESTORE"`
 	Key           string        `env:"KEY"`
+	Database      string        `env:"DATABASE_DSN"`
 }
 
 func BuildConfig() (Config, error) {
@@ -29,6 +30,7 @@ func (cfg *Config) buildFromFlags() {
 	flag.BoolVar(&cfg.Restore, "r", true, "restore")
 	flag.StringVar(&cfg.StoreFile, "f", "/tmp/devops-metrics-db.json", "store file")
 	flag.StringVar(&cfg.Key, "k", "", "key")
+	flag.StringVar(&cfg.Database, "d", "", "database dsn")
 	flag.Parse()
 }
 
