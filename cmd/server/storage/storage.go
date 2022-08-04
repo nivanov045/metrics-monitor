@@ -23,11 +23,11 @@ type storage struct {
 	hasUpdates    bool
 	syncSave      bool
 	mu            sync.Mutex
-	database      string
+	databasePath  string
 	db            *sql.DB
 }
 
-func New(storeInterval time.Duration, storeFile string, restore bool, database string) *storage {
+func New(storeInterval time.Duration, storeFile string, restore bool, databasePath string) *storage {
 	var res = &storage{
 		Metrics: metrics.Metrics{
 			GaugeMetrics:   map[string]metrics.Gauge{},
@@ -38,17 +38,16 @@ func New(storeInterval time.Duration, storeFile string, restore bool, database s
 		restore:       restore,
 		hasUpdates:    false,
 		syncSave:      false,
-		database:      database,
+		databasePath:  databasePath,
 	}
 
-	if len(database) > 0 {
+	if len(databasePath) > 0 {
 		var err error
 		res.db, err = sql.Open("sqlite3",
-			database)
+			databasePath)
 		if err != nil {
-			panic(err)
+			log.Println("storage::New: error in db open:", err)
 		}
-		defer res.db.Close()
 	}
 
 	if restore {
@@ -64,7 +63,7 @@ func New(storeInterval time.Duration, storeFile string, restore bool, database s
 }
 
 func (s *storage) doRestore() {
-	if len(s.database) > 0 {
+	if s.db != nil {
 		s.restoreFromDB()
 	} else {
 		err := s.restoreFromFile()
@@ -140,6 +139,9 @@ func (s *storage) GetKnownMetrics() []string {
 }
 
 func StorageFinalizer(s *storage) {
+	if s.db != nil {
+		defer s.db.Close()
+	}
 	log.Println("storage::StorageFinalizer: started")
 	s.doSave()
 }
@@ -154,7 +156,7 @@ func (s *storage) saveByTimer() {
 }
 
 func (s *storage) doSave() {
-	if len(s.database) > 0 {
+	if s.db != nil {
 		s.saveToDB()
 	} else {
 		err := s.saveToFile()
