@@ -52,7 +52,7 @@ func (ser *service) ParseAndSave(s []byte) error {
 			log.Println("service::ParseAndSave: gauge value is empty")
 			return errors.New("wrong query")
 		}
-		if ser.checkHash(m) == false {
+		if !ser.checkHash(m) {
 			log.Println("service::ParseAndSave: wrong hash")
 			return errors.New("wrong hash")
 		}
@@ -63,7 +63,7 @@ func (ser *service) ParseAndSave(s []byte) error {
 			return errors.New("wrong query")
 		}
 		value := *m.Delta
-		if ser.checkHash(m) == false {
+		if !ser.checkHash(m) {
 			log.Println("service::ParseAndSave: wrong hash")
 			return errors.New("wrong hash")
 		}
