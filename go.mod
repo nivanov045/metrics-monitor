@@ -7,7 +7,10 @@ require (
 	github.com/stretchr/testify v1.8.0
 )
 
-require github.com/mattn/go-sqlite3 v1.14.14 // indirect
+require (
+	github.com/lib/pq v1.10.6 // indirect
+	github.com/mattn/go-sqlite3 v1.14.14 // indirect
+)
 
 require (
 	github.com/davecgh/go-spew v1.1.1 // indirect

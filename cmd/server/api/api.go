@@ -13,7 +13,7 @@ type Service interface {
 	ParseAndSave([]byte) error
 	ParseAndGet([]byte) ([]byte, error)
 	GetKnownMetrics() []string
-	IsDbConnected() bool
+	IsDBConnected() bool
 }
 
 type api struct {
@@ -107,7 +107,7 @@ func (a *api) rootHandler(w http.ResponseWriter, r *http.Request) {
 func (a *api) pingDbHandler(w http.ResponseWriter, r *http.Request) {
 	log.Println("api::pingDbHandler: started")
 	w.Header().Set("content-type", "text/html")
-	if a.service.IsDbConnected() {
+	if a.service.IsDBConnected() {
 		w.WriteHeader(http.StatusOK)
 	} else {
 		w.WriteHeader(http.StatusInternalServerError)

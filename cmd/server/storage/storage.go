@@ -10,7 +10,7 @@ import (
 	"sync"
 	"time"
 
-	_ "github.com/mattn/go-sqlite3"
+	_ "github.com/lib/pq"
 
 	"github.com/nivanov045/silver-octo-train/internal/metrics"
 )
@@ -43,8 +43,7 @@ func New(storeInterval time.Duration, storeFile string, restore bool, databasePa
 
 	if len(databasePath) > 0 {
 		var err error
-		res.db, err = sql.Open("sqlite3",
-			databasePath)
+		res.db, err = sql.Open("postgres", databasePath)
 		if err != nil {
 			log.Println("storage::New: error in db open:", err)
 		}
@@ -192,7 +191,7 @@ func (s *storage) saveToFile() error {
 	return nil
 }
 
-func (s *storage) IsDbConnected() bool {
+func (s *storage) IsDBConnected() bool {
 	if s.db == nil {
 		return false
 	}
