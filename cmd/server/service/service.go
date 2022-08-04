@@ -43,10 +43,6 @@ func (ser *service) ParseAndSave(s []byte) error {
 		return errors.New("wrong query")
 	}
 	log.Println("service::ParseAndSave: metrics", m)
-	if ser.checkHash(m) == false {
-		log.Println("service::ParseAndSave: wrong hash")
-		return errors.New("wrong hash")
-	}
 	metricType := m.MType
 	metricName := m.ID
 	log.Println("service::ParseAndSave: type:", metricType, "; name:", metricName)
@@ -56,6 +52,10 @@ func (ser *service) ParseAndSave(s []byte) error {
 			log.Println("service::ParseAndSave: gauge value is empty")
 			return errors.New("wrong query")
 		}
+		if ser.checkHash(m) == false {
+			log.Println("service::ParseAndSave: wrong hash")
+			return errors.New("wrong hash")
+		}
 		ser.storage.SetGaugeMetrics(metricName, metrics.Gauge(*value))
 	} else if metricType == counter {
 		if m.Delta == nil {
@@ -63,6 +63,10 @@ func (ser *service) ParseAndSave(s []byte) error {
 			return errors.New("wrong query")
 		}
 		value := *m.Delta
+		if ser.checkHash(m) == false {
+			log.Println("service::ParseAndSave: wrong hash")
+			return errors.New("wrong hash")
+		}
 		exVal, ok := ser.storage.GetCounterMetrics(metricName)
 		if !ok {
 			log.Println("service::ParseAndSave: new counter metric")
@@ -86,10 +90,10 @@ func (ser *service) ParseAndGet(s []byte) ([]byte, error) {
 		log.Println("service::ParseAndGet: can't unmarshal with error", err)
 		return nil, errors.New("wrong query")
 	}
-	if ser.checkHash(m) == false {
-		log.Println("service::ParseAndGet: wrong hash")
-		return nil, errors.New("wrong hash")
-	}
+	//if ser.checkHash(m) == false {
+	//	log.Println("service::ParseAndGet: wrong hash")
+	//	return nil, errors.New("wrong hash")
+	//}
 	metricType := m.MType
 	metricName := m.ID
 	log.Println("service::ParseAndGet: type:", metricType, "; name:", metricName)
