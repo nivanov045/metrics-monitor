@@ -42,7 +42,7 @@ func Test_service_ParseAndSave(t *testing.T) {
 			},
 		},
 	}
-	ser := service{storage.New(0*time.Second, "/tmp/devops-metrics-db.json", false)}
+	ser := service{storage.New(0*time.Second, "/tmp/devops-metrics-db.json", false), ""}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			v := metrics.MetricsInterface{
@@ -94,7 +94,7 @@ func Test_service_ParseAndGet(t *testing.T) {
 			},
 		},
 	}
-	ser := service{storage.New(0*time.Second, "/tmp/devops-metrics-db.json", false)}
+	ser := service{storage.New(0*time.Second, "/tmp/devops-metrics-db.json", false), ""}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			v := metrics.MetricsInterface{
