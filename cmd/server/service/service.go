@@ -1,8 +1,12 @@
 package service
 
 import (
+	"crypto/hmac"
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"log"
 
 	"github.com/nivanov045/silver-octo-train/internal/metrics"
@@ -18,10 +22,11 @@ type Storage interface {
 
 type service struct {
 	storage Storage
+	key     string
 }
 
-func New(storage Storage) *service {
-	return &service{storage: storage}
+func New(key string, storage Storage) *service {
+	return &service{storage: storage, key: key}
 }
 
 const (
@@ -36,6 +41,11 @@ func (ser *service) ParseAndSave(s []byte) error {
 	if err != nil {
 		log.Println("service::ParseAndSave: can't unmarshal with error", err)
 		return errors.New("wrong query")
+	}
+	log.Println("service::ParseAndSave: metrics", m)
+	if ser.checkHash(m) == false {
+		log.Println("service::ParseAndSave: wrong hash")
+		return errors.New("wrong hash")
 	}
 	metricType := m.MType
 	metricName := m.ID
@@ -76,6 +86,10 @@ func (ser *service) ParseAndGet(s []byte) ([]byte, error) {
 		log.Println("service::ParseAndGet: can't unmarshal with error", err)
 		return nil, errors.New("wrong query")
 	}
+	if ser.checkHash(m) == false {
+		log.Println("service::ParseAndGet: wrong hash")
+		return nil, errors.New("wrong hash")
+	}
 	metricType := m.MType
 	metricName := m.ID
 	log.Println("service::ParseAndGet: type:", metricType, "; name:", metricName)
@@ -87,6 +101,9 @@ func (ser *service) ParseAndGet(s []byte) ([]byte, error) {
 		}
 		asFloat := float64(val)
 		m.Value = &asFloat
+		if len(ser.key) > 0 {
+			m.Hash = hex.EncodeToString(createHash([]byte(ser.key), m))
+		}
 		marshal, err := json.Marshal(m)
 		if err != nil {
 			log.Panic("service::ParseAndGet: can't marshal gauge metric with", err)
@@ -101,6 +118,9 @@ func (ser *service) ParseAndGet(s []byte) ([]byte, error) {
 		}
 		asint := int64(val)
 		m.Delta = &asint
+		if len(ser.key) > 0 {
+			m.Hash = hex.EncodeToString(createHash([]byte(ser.key), m))
+		}
 		marshal, err := json.Marshal(m)
 		if err != nil {
 			log.Panic("service::ParseAndGet: can't marshal caunter metric with", err)
@@ -110,6 +130,28 @@ func (ser *service) ParseAndGet(s []byte) ([]byte, error) {
 	}
 	log.Println("service::ParseAndGet: unknown metrics type")
 	return nil, errors.New("wrong metrics type")
+}
+
+func (ser *service) checkHash(m metrics.MetricsInterface) bool {
+	hash := createHash([]byte(ser.key), m)
+	received, _ := hex.DecodeString(m.Hash)
+	if len(ser.key) > 0 && !hmac.Equal(received, hash) {
+		log.Println("service::checkHash: wrong hash: made", hash, "but received as []byte", received, "as string", m.Hash)
+		return false
+	}
+	return true
+}
+
+func createHash(key []byte, m metrics.MetricsInterface) []byte {
+	h := hmac.New(sha256.New, key)
+	if m.MType == gauge {
+		h.Write([]byte(fmt.Sprintf("%s:gauge:%d", m.ID, *m.Value)))
+		log.Println("service::createHash: hash by", fmt.Sprintf("%s:gauge:%d", m.ID, *m.Value), "with key", key)
+	} else {
+		h.Write([]byte(fmt.Sprintf("%s:counter:%d", m.ID, *m.Delta)))
+		log.Println("service::createHash: hash by", fmt.Sprintf("%s:counter:%d", m.ID, *m.Delta), "with key", key)
+	}
+	return h.Sum(nil)
 }
 
 func (ser *service) GetKnownMetrics() []string {

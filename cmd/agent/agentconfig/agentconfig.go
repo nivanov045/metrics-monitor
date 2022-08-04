@@ -11,6 +11,7 @@ type Config struct {
 	Address        string        `env:"ADDRESS"`
 	ReportInterval time.Duration `env:"REPORT_INTERVAL"`
 	PollInterval   time.Duration `env:"POLL_INTERVAL"`
+	Key            string        `env:"KEY"`
 }
 
 func BuildConfig() (Config, error) {
@@ -22,8 +23,9 @@ func BuildConfig() (Config, error) {
 
 func (cfg *Config) buildFromFlags() {
 	flag.StringVar(&cfg.Address, "a", "127.0.0.1:8080", "address")
-	flag.DurationVar(&cfg.PollInterval, "p", 1*time.Second, "poll interval")
-	flag.DurationVar(&cfg.ReportInterval, "r", 10*time.Second, "report interval")
+	flag.DurationVar(&cfg.PollInterval, "p", 2*time.Second, "poll interval")
+	flag.DurationVar(&cfg.ReportInterval, "r", 5*time.Second, "report interval")
+	flag.StringVar(&cfg.Key, "k", "", "key")
 	flag.Parse()
 }
 
