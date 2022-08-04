@@ -37,7 +37,7 @@ func (a *api) Run(address string) error {
 	r.Post("/update/", a.updateMetricsHandler)
 	r.Get("/", a.rootHandler)
 	r.Post("/value/", a.getMetricsHandler)
-	r.Get("/ping", a.pingDbHandler)
+	r.Get("/ping", a.pingDBHandler)
 	return http.ListenAndServe(address, r)
 }
 
@@ -104,8 +104,8 @@ func (a *api) rootHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (a *api) pingDbHandler(w http.ResponseWriter, r *http.Request) {
-	log.Println("api::pingDbHandler: started")
+func (a *api) pingDBHandler(w http.ResponseWriter, r *http.Request) {
+	log.Println("api::pingDBHandler: started")
 	w.Header().Set("content-type", "text/html")
 	if a.service.IsDBConnected() {
 		w.WriteHeader(http.StatusOK)
