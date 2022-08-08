@@ -18,6 +18,7 @@ type Storage interface {
 	SetCounterMetrics(name string, val metrics.Counter)
 	GetCounterMetrics(name string) (metrics.Counter, bool)
 	GetKnownMetrics() []string
+	IsDBConnected() bool
 }
 
 type service struct {
@@ -90,10 +91,6 @@ func (ser *service) ParseAndGet(s []byte) ([]byte, error) {
 		log.Println("service::ParseAndGet: can't unmarshal with error", err)
 		return nil, errors.New("wrong query")
 	}
-	//if ser.checkHash(m) == false {
-	//	log.Println("service::ParseAndGet: wrong hash")
-	//	return nil, errors.New("wrong hash")
-	//}
 	metricType := m.MType
 	metricName := m.ID
 	log.Println("service::ParseAndGet: type:", metricType, "; name:", metricName)
@@ -160,4 +157,8 @@ func createHash(key []byte, m metrics.MetricsInterface) []byte {
 
 func (ser *service) GetKnownMetrics() []string {
 	return ser.storage.GetKnownMetrics()
+}
+
+func (ser *service) IsDBConnected() bool {
+	return ser.storage.IsDBConnected()
 }

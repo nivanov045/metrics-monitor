@@ -13,6 +13,7 @@ type Service interface {
 	ParseAndSave([]byte) error
 	ParseAndGet([]byte) ([]byte, error)
 	GetKnownMetrics() []string
+	IsDBConnected() bool
 }
 
 type api struct {
@@ -21,6 +22,23 @@ type api struct {
 
 func New(service Service) *api {
 	return &api{service: service}
+}
+
+func (a *api) Run(address string) error {
+	log.Println("api::Run: started with addr", address)
+	r := chi.NewRouter()
+
+	r.Use(middleware.RequestID)
+	r.Use(middleware.RealIP)
+	r.Use(middleware.Logger)
+	r.Use(middleware.Recoverer)
+	r.Use(middleware.Compress(5, "application/json", "text/html"))
+
+	r.Post("/update/", a.updateMetricsHandler)
+	r.Get("/", a.rootHandler)
+	r.Post("/value/", a.getMetricsHandler)
+	r.Get("/ping", a.pingDBHandler)
+	return http.ListenAndServe(address, r)
 }
 
 func (a *api) updateMetricsHandler(w http.ResponseWriter, r *http.Request) {
@@ -86,21 +104,14 @@ func (a *api) rootHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (a *api) Run(address string) error {
-	log.Println("api::Run: started with addr", address)
-	r := chi.NewRouter()
-
-	r.Use(middleware.RequestID)
-	r.Use(middleware.RealIP)
-	r.Use(middleware.Logger)
-	r.Use(middleware.Recoverer)
-	r.Use(middleware.Compress(5, "application/json", "text/html"))
-
-	r.Post("/update/", a.updateMetricsHandler)
-	r.Get("/", a.rootHandler)
-	r.Post("/value/", a.getMetricsHandler)
-
-	return http.ListenAndServe(address, r)
+func (a *api) pingDBHandler(w http.ResponseWriter, r *http.Request) {
+	log.Println("api::pingDBHandler: started")
+	w.Header().Set("content-type", "text/html")
+	if a.service.IsDBConnected() {
+		w.WriteHeader(http.StatusOK)
+	} else {
+		w.WriteHeader(http.StatusInternalServerError)
+	}
 }
 
 type API interface {
