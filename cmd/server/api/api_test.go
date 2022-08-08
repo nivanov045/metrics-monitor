@@ -70,7 +70,7 @@ func Test_api_updateMetricsHandler(t *testing.T) {
 		},
 	}
 	storage := storage.New(0*time.Second, "/tmp/devops-metrics-db.json", false)
-	serv := service.New(storage)
+	serv := service.New("", storage)
 	a := api{serv}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -101,7 +101,7 @@ func Test_api_getMetricsHandler(t *testing.T) {
 		},
 	}
 	storage := storage.New(0*time.Second, "/tmp/devops-metrics-db.json", false)
-	serv := service.New(storage)
+	serv := service.New("", storage)
 	a := api{serv}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -146,7 +146,7 @@ func Test_api_rootHandler(t *testing.T) {
 		},
 	}
 	storage := storage.New(0*time.Second, "/tmp/devops-metrics-db.json", false)
-	serv := service.New(storage)
+	serv := service.New("", storage)
 	a := api{serv}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

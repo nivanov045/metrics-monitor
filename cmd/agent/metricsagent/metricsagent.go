@@ -2,7 +2,11 @@ package metricsagent
 
 import (
 	"context"
+	"crypto/hmac"
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
+	"fmt"
 	"github.com/nivanov045/silver-octo-train/cmd/agent/agentconfig"
 	"log"
 	"time"
@@ -65,6 +69,12 @@ func (a *metricsagent) sendMetrics() {
 					Delta: nil,
 					Value: &asFloat,
 				}
+				if len(a.config.Key) > 0 {
+					hash := createHash([]byte(a.config.Key), metricForSend)
+					metricForSend.Hash = hex.EncodeToString(hash)
+					log.Println("metricsagent::sendMetrics: hash", hash)
+					log.Println("metricsagent::sendMetrics: string(hash)", string(hash))
+				}
 				marshalled, err := json.Marshal(metricForSend)
 				if err != nil {
 					log.Panicln("metricsagent::sendMetrics: can't marshal gauge metric for sand with", err)
@@ -75,12 +85,18 @@ func (a *metricsagent) sendMetrics() {
 				}
 			}
 			pc := m.CounterMetrics["PollCount"]
-			asint := int64(pc)
+			asInt := int64(pc)
 			metricForSend := metrics.MetricsInterface{
 				ID:    "PollCount",
 				MType: "counter",
-				Delta: &asint,
+				Delta: &asInt,
 				Value: nil,
+			}
+			if len(a.config.Key) > 0 {
+				hash := createHash([]byte(a.config.Key), metricForSend)
+				metricForSend.Hash = hex.EncodeToString(hash)
+				log.Println("metricsagent::sendMetrics: hash", hash)
+				log.Println("metricsagent::sendMetrics: string(hash)", string(hash))
 			}
 			marshalled, err := json.Marshal(metricForSend)
 			if err != nil {
@@ -93,6 +109,18 @@ func (a *metricsagent) sendMetrics() {
 			log.Println("metricsagent::sendMetrics: metrics were sent")
 		}
 	}
+}
+
+func createHash(key []byte, m metrics.MetricsInterface) []byte {
+	h := hmac.New(sha256.New, key)
+	if m.MType == "gauge" {
+		h.Write([]byte(fmt.Sprintf("%s:gauge:%f", m.ID, *m.Value)))
+		log.Println("metricsagent::createHash: hash by", fmt.Sprintf("%s:gauge:%f", m.ID, *m.Value), "with key", key)
+	} else {
+		h.Write([]byte(fmt.Sprintf("%s:counter:%d", m.ID, *m.Delta)))
+		log.Println("metricsagent::createHash: hash by", fmt.Sprintf("%s:counter:%d", m.ID, *m.Delta), "with key", key)
+	}
+	return h.Sum(nil)
 }
 
 func (a *metricsagent) Start() {

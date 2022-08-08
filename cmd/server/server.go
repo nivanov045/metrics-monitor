@@ -16,7 +16,7 @@ func main() {
 	log.Println("server::main: cfg:", cfg)
 
 	myStorage := storage.New(cfg.StoreInterval, cfg.StoreFile, cfg.Restore)
-	serv := service.New(myStorage)
+	serv := service.New(cfg.Key, myStorage)
 	myapi := api.New(serv)
 	log.Fatalln(myapi.Run(cfg.Address))
 }

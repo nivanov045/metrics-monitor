@@ -41,7 +41,7 @@ func (a *api) updateMetricsHandler(w http.ResponseWriter, r *http.Request) {
 		log.Println("api::updateMetricsHandler: error in parsing:", err)
 		if err.Error() == "wrong metrics type" {
 			w.WriteHeader(http.StatusNotImplemented)
-		} else if err.Error() == "can't parse value" {
+		} else if err.Error() == "can't parse value" || err.Error() == "wrong hash" {
 			w.WriteHeader(http.StatusBadRequest)
 		} else {
 			w.WriteHeader(http.StatusNotFound)
@@ -74,6 +74,7 @@ func (a *api) getMetricsHandler(w http.ResponseWriter, r *http.Request) {
 		} else {
 			w.WriteHeader(http.StatusBadRequest)
 		}
+		w.Write([]byte("{}"))
 	}
 }
 

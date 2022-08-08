@@ -2,9 +2,10 @@ package serverconfig
 
 import (
 	"flag"
-	"github.com/caarlos0/env/v6"
 	"log"
 	"time"
+
+	"github.com/caarlos0/env/v6"
 )
 
 type Config struct {
@@ -12,6 +13,7 @@ type Config struct {
 	StoreInterval time.Duration `env:"STORE_INTERVAL"`
 	StoreFile     string        `env:"STORE_FILE"`
 	Restore       bool          `env:"RESTORE"`
+	Key           string        `env:"KEY"`
 }
 
 func BuildConfig() (Config, error) {
@@ -26,6 +28,7 @@ func (cfg *Config) buildFromFlags() {
 	flag.DurationVar(&cfg.StoreInterval, "i", 300*time.Second, "store interval")
 	flag.BoolVar(&cfg.Restore, "r", true, "restore")
 	flag.StringVar(&cfg.StoreFile, "f", "/tmp/devops-metrics-db.json", "store file")
+	flag.StringVar(&cfg.Key, "k", "", "key")
 	flag.Parse()
 }
 
