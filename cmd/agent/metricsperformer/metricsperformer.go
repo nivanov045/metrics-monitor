@@ -1,7 +1,6 @@
 package metricsperformer
 
 import (
-	"fmt"
 	"math/rand"
 	"runtime"
 
@@ -47,6 +46,8 @@ func (*metricsPerformer) UpdateMetrics(m metrics.Metrics) {
 			m.GaugeMetrics["Lookups"] = metrics.Gauge(memStat.Lookups)
 		case "MCacheInuse":
 			m.GaugeMetrics["MCacheInuse"] = metrics.Gauge(memStat.MCacheInuse)
+		case "MCacheSys":
+			m.GaugeMetrics["MCacheSys"] = metrics.Gauge(memStat.MCacheSys)
 		case "MSpanInuse":
 			m.GaugeMetrics["MSpanInuse"] = metrics.Gauge(memStat.MSpanInuse)
 		case "MSpanSys":
@@ -75,7 +76,6 @@ func (*metricsPerformer) UpdateMetrics(m metrics.Metrics) {
 			m.GaugeMetrics["RandomValue"] = metrics.Gauge(rand.Float64())
 		case "PollCount":
 			m.CounterMetrics["PollCount"]++
-			fmt.Println("Updated ", m.CounterMetrics["PollCount"])
 		}
 	}
 }

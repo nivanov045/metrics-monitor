@@ -25,7 +25,7 @@ func Test_metricsPerformer_UpdateMetrics(t *testing.T) {
 			assert.Equal(t, len(m.GaugeMetrics), 0)
 			assert.Equal(t, len(m.CounterMetrics), 0)
 			mp.UpdateMetrics(m)
-			assert.Equal(t, len(m.GaugeMetrics), 27)
+			assert.Equal(t, len(m.GaugeMetrics), 28)
 			assert.Equal(t, len(m.CounterMetrics), 1)
 			assert.Equal(t, m.CounterMetrics["PollCount"], metrics.Counter(1))
 			mp.UpdateMetrics(m)

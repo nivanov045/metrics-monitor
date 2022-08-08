@@ -3,8 +3,9 @@ package storage
 import (
 	"testing"
 
-	"github.com/nivanov045/silver-octo-train/internal/metrics"
 	"github.com/stretchr/testify/assert"
+
+	"github.com/nivanov045/silver-octo-train/internal/metrics"
 )
 
 func Test_storage_SetGetCounterMetrics(t *testing.T) {
