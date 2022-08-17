@@ -1,6 +1,7 @@
 package storage
 
 import (
+	"github.com/nivanov045/silver-octo-train/cmd/server/storage/inmemorystorage"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -26,10 +27,10 @@ func Test_storage_SetGetCounterMetrics(t *testing.T) {
 		},
 	}
 	s := storage{
-		Metrics: metrics.Metrics{
+		is: &inmemorystorage.InMemoryStorage{Metrics: metrics.Metrics{
 			GaugeMetrics:   map[string]metrics.Gauge{},
 			CounterMetrics: map[string]metrics.Counter{},
-		},
+		}},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -60,10 +61,10 @@ func Test_storage_SetGetGaugeMetrics(t *testing.T) {
 		},
 	}
 	s := storage{
-		Metrics: metrics.Metrics{
+		is: &inmemorystorage.InMemoryStorage{Metrics: metrics.Metrics{
 			GaugeMetrics:   map[string]metrics.Gauge{},
 			CounterMetrics: map[string]metrics.Counter{},
-		},
+		}},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -85,30 +86,30 @@ func Test_storage_GetKnownMetrics(t *testing.T) {
 		{
 			name: "no metrics",
 			s: &storage{
-				Metrics: metrics.Metrics{
+				is: &inmemorystorage.InMemoryStorage{Metrics: metrics.Metrics{
 					GaugeMetrics:   map[string]metrics.Gauge{},
 					CounterMetrics: map[string]metrics.Counter{},
-				},
+				}},
 			},
 			want: []string(nil),
 		},
 		{
 			name: "one metric",
 			s: &storage{
-				Metrics: metrics.Metrics{
+				is: &inmemorystorage.InMemoryStorage{Metrics: metrics.Metrics{
 					GaugeMetrics:   map[string]metrics.Gauge{"TestMetric": 0.0},
 					CounterMetrics: map[string]metrics.Counter{},
-				},
+				}},
 			},
 			want: []string{"TestMetric"},
 		},
 		{
 			name: "several metrics",
 			s: &storage{
-				Metrics: metrics.Metrics{
+				is: &inmemorystorage.InMemoryStorage{Metrics: metrics.Metrics{
 					GaugeMetrics:   map[string]metrics.Gauge{"TestMetricG": 0.5},
 					CounterMetrics: map[string]metrics.Counter{"TestMetricC": 10},
-				},
+				}},
 			},
 			want: []string{"TestMetricC", "TestMetricG"},
 		},
