@@ -15,7 +15,7 @@ type DBStorage struct {
 	db           *sql.DB
 }
 
-func New(databasePath string) *DBStorage {
+func New(databasePath string, restore bool) *DBStorage {
 	log.Println("DBStorage::New: started")
 	var res = &DBStorage{
 		databasePath: databasePath,
@@ -40,7 +40,7 @@ func New(databasePath string) *DBStorage {
 	if err != nil {
 		log.Panic("DBStorage::New: error in table check:", err)
 	}
-	if value == false {
+	if !restore || value == false {
 		_, err = res.db.Exec(`CREATE TABLE metrics (mytype text, myid text, myvalue double precision, delta integer, uid text UNIQUE);`)
 		if err != nil {
 			log.Panic("DBStorage::New: error in table creation:", err)
