@@ -40,9 +40,9 @@ func (a *metricsagent) updateMetrics() {
 			return
 		case <-ticker.C:
 			log.Println("metricsagent::updateMetrics: time to update")
-			m := <-a.metricsChannel
-			a.metricsChannel <- m
-			mCopy := m
+			mOriginal := <-a.metricsChannel
+			mCopy := mOriginal.Clone()
+			a.metricsChannel <- mOriginal
 			metricsperformer.New().UpdateMetrics(mCopy)
 			<-a.metricsChannel
 			a.metricsChannel <- mCopy
@@ -60,9 +60,9 @@ func (a *metricsagent) sendMetrics() {
 			log.Println("metricsagent::sendMetrics: ctx.Done")
 			return
 		case <-ticker.C:
-			m_original := <-a.metricsChannel
-			a.metricsChannel <- m_original
-			m := m_original
+			mOriginal := <-a.metricsChannel
+			m := mOriginal.Clone()
+			a.metricsChannel <- mOriginal
 			for key, val := range m.GaugeMetrics {
 				asFloat := float64(val)
 				metricForSend := metrics.MetricsInterface{
@@ -145,9 +145,9 @@ func (a *metricsagent) sendSeveralMetrics() {
 			log.Println("metricsagent::sendSeveralMetrics: ctx.Done")
 			return
 		case <-ticker.C:
-			m_original := <-a.metricsChannel
-			a.metricsChannel <- m_original
-			m := m_original
+			mOriginal := <-a.metricsChannel
+			m := mOriginal.Clone()
+			a.metricsChannel <- mOriginal
 			var toSend []metrics.MetricsInterface
 			for key, val := range m.GaugeMetrics {
 				asFloat := float64(val)
