@@ -14,6 +14,7 @@ type Service interface {
 	ParseAndGet([]byte) ([]byte, error)
 	GetKnownMetrics() []string
 	IsDBConnected() bool
+	ParseAndSaveSeveral([]byte) error
 }
 
 type api struct {
@@ -38,6 +39,7 @@ func (a *api) Run(address string) error {
 	r.Get("/", a.rootHandler)
 	r.Post("/value/", a.getMetricsHandler)
 	r.Get("/ping", a.pingDBHandler)
+	r.Post("/updates/", a.updatesMetricsHandler)
 	return http.ListenAndServe(address, r)
 }
 
@@ -112,6 +114,34 @@ func (a *api) pingDBHandler(w http.ResponseWriter, r *http.Request) {
 	} else {
 		w.WriteHeader(http.StatusInternalServerError)
 	}
+}
+
+func (a *api) updatesMetricsHandler(w http.ResponseWriter, r *http.Request) {
+	log.Println("api::updatesMetricsHandler: started ", r)
+	w.Header().Set("content-type", "application/json")
+	defer r.Body.Close()
+	respBody, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		log.Println("api::updatesMetricsHandler: can't read response body with", err)
+		w.WriteHeader(http.StatusNotFound)
+		w.Write([]byte("{}"))
+		return
+	}
+	if err := a.service.ParseAndSaveSeveral(respBody); err == nil {
+		log.Println("api::updatesMetricsHandler: parsed and saved")
+		w.WriteHeader(http.StatusOK)
+	} else {
+		//log.Println("api::updatesMetricsHandler: error in parsing:", err)
+		//if err.Error() == "wrong metrics type" {
+		//	w.WriteHeader(http.StatusNotImplemented)
+		//} else if err.Error() == "can't parse value" || err.Error() == "wrong hash" {
+		//	w.WriteHeader(http.StatusBadRequest)
+		//} else {
+		w.WriteHeader(http.StatusNotFound)
+		//}
+	}
+	w.Write([]byte("{}"))
+	log.Println("api::updatesMetricsHandler: response:", w)
 }
 
 type API interface {

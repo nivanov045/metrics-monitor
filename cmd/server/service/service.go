@@ -162,3 +162,53 @@ func (ser *service) GetKnownMetrics() []string {
 func (ser *service) IsDBConnected() bool {
 	return ser.storage.IsDBConnected()
 }
+
+func (ser *service) ParseAndSaveSeveral(s []byte) error {
+	log.Println("service::ParseAndSaveSeveral: started", string(s))
+	var mall []metrics.MetricsInterface
+	err := json.Unmarshal(s, &mall)
+	if err != nil {
+		log.Println("service::ParseAndSaveSeveral: can't unmarshal with error", err)
+		return errors.New("wrong query")
+	}
+	for _, m := range mall {
+		log.Println("service::ParseAndSaveSeveral: metrics", m)
+		metricType := m.MType
+		metricName := m.ID
+		log.Println("service::ParseAndSaveSeveral: type:", metricType, "; name:", metricName)
+		if metricType == gauge {
+			value := m.Value
+			if value == nil {
+				log.Println("service::ParseAndSaveSeveral: gauge value is empty")
+				continue
+			}
+			if !ser.checkHash(m) {
+				log.Println("service::ParseAndSaveSeveral: wrong hash")
+				continue
+			}
+			ser.storage.SetGaugeMetrics(metricName, metrics.Gauge(*value))
+		} else if metricType == counter {
+			if m.Delta == nil {
+				log.Println("service::ParseAndSaveSeveral: counter delta is empty")
+				continue
+			}
+			value := *m.Delta
+			if !ser.checkHash(m) {
+				log.Println("service::ParseAndSaveSeveral: wrong hash")
+				continue
+			}
+			exVal, ok := ser.storage.GetCounterMetrics(metricName)
+			if !ok {
+				log.Println("service::ParseAndSaveSeveral: new counter metric")
+				ser.storage.SetCounterMetrics(metricName, metrics.Counter(value))
+			} else {
+				log.Println("service::ParseAndSaveSeveral: update counter metric")
+				ser.storage.SetCounterMetrics(metricName, metrics.Counter(int64(exVal)+value))
+			}
+		} else {
+			log.Println("service::ParseAndSaveSeveral: unknown metrics type")
+			continue
+		}
+	}
+	return nil
+}
