@@ -97,7 +97,7 @@ func (a *api) getMetricsHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (a *api) rootHandler(w http.ResponseWriter, r *http.Request) {
+func (a *api) rootHandler(w http.ResponseWriter, _ *http.Request) {
 	log.Println("api::rootHandler::info: started")
 	w.Header().Set("content-type", "text/html")
 	for _, val := range a.service.GetKnownMetrics() {
@@ -105,7 +105,7 @@ func (a *api) rootHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (a *api) pingDBHandler(w http.ResponseWriter, r *http.Request) {
+func (a *api) pingDBHandler(w http.ResponseWriter, _ *http.Request) {
 	log.Println("api::pingDBHandler::info: started")
 	w.Header().Set("content-type", "text/html")
 	if a.service.IsDBConnected() {

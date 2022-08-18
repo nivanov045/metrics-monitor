@@ -1,58 +1,64 @@
 package storage
 
 import (
-	"time"
-
 	_ "github.com/lib/pq"
 
+	"github.com/nivanov045/silver-octo-train/cmd/server/config"
 	"github.com/nivanov045/silver-octo-train/cmd/server/storage/dbstorage"
 	"github.com/nivanov045/silver-octo-train/cmd/server/storage/inmemorystorage"
 	"github.com/nivanov045/silver-octo-train/internal/metrics"
 )
 
 type InnerStorage interface {
-	SetGaugeMetrics(name string, val metrics.Gauge)
+	SetGaugeMetrics(name string, val metrics.Gauge) error
 	GetGaugeMetrics(name string) (metrics.Gauge, bool)
-	SetCounterMetrics(name string, val metrics.Counter)
+	SetCounterMetrics(name string, val metrics.Counter) error
 	GetCounterMetrics(name string) (metrics.Counter, bool)
 	GetKnownMetrics() []string
 	IsDBConnected() bool
 }
 
 type storage struct {
-	is InnerStorage
+	innerStorage InnerStorage
 }
 
-func New(storeInterval time.Duration, storeFile string, restore bool, databasePath string) *storage {
+func New(config config.Config) (*storage, error) {
 	var res = &storage{}
-	if len(databasePath) > 0 {
-		res.is = dbstorage.New(databasePath)
+	var err error
+	if len(config.Database) > 0 {
+		res.innerStorage, err = dbstorage.New(config.Database)
 	} else {
-		res.is = inmemorystorage.New(storeInterval, storeFile, restore)
+		res.innerStorage = inmemorystorage.New(config.StoreInterval, config.StoreFile, config.Restore)
 	}
-	return res
+	return res, err
 }
 
-func (s *storage) SetCounterMetrics(name string, val metrics.Counter) {
-	s.is.SetCounterMetrics(name, val)
+func (s *storage) SetCounterMetrics(name string, val metrics.Counter) error {
+	return s.innerStorage.SetCounterMetrics(name, val)
 }
 
 func (s *storage) GetCounterMetrics(name string) (metrics.Counter, bool) {
-	return s.is.GetCounterMetrics(name)
+	return s.innerStorage.GetCounterMetrics(name)
 }
 
-func (s *storage) SetGaugeMetrics(name string, val metrics.Gauge) {
-	s.is.SetGaugeMetrics(name, val)
+func (s *storage) SetGaugeMetrics(name string, val metrics.Gauge) error {
+	return s.innerStorage.SetGaugeMetrics(name, val)
 }
 
 func (s *storage) GetGaugeMetrics(name string) (metrics.Gauge, bool) {
-	return s.is.GetGaugeMetrics(name)
+	return s.innerStorage.GetGaugeMetrics(name)
 }
 
 func (s *storage) GetKnownMetrics() []string {
-	return s.is.GetKnownMetrics()
+	return s.innerStorage.GetKnownMetrics()
 }
 
 func (s *storage) IsDBConnected() bool {
-	return s.is.IsDBConnected()
+	return s.innerStorage.IsDBConnected()
+}
+
+func NewForcedInMemory(config config.Config) *storage {
+	var res = &storage{}
+	res.innerStorage = inmemorystorage.New(config.StoreInterval, config.StoreFile, config.Restore)
+	return res
 }

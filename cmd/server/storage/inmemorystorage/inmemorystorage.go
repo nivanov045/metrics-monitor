@@ -37,7 +37,10 @@ func New(storeInterval time.Duration, storeFile string, restore bool) *InMemoryS
 	if restore {
 		res.doRestore()
 	}
-	runtime.SetFinalizer(res, StorageFinalizer)
+	runtime.SetFinalizer(res, func(s *InMemoryStorage) {
+		log.Println("InMemoryStorage::StorageFinalizer::info: started")
+		s.doSave()
+	})
 	if res.storeInterval > 0*time.Second {
 		go res.saveByTimer()
 	} else {
@@ -71,7 +74,7 @@ func (s *InMemoryStorage) restoreFromFile() error {
 	return nil
 }
 
-func (s *InMemoryStorage) SetCounterMetrics(name string, val metrics.Counter) {
+func (s *InMemoryStorage) SetCounterMetrics(name string, val metrics.Counter) error {
 	log.Println("InMemoryStorage::SetCounterMetrics::info: started")
 	s.Metrics.CounterMetrics[name] = val
 	if s.syncSave {
@@ -79,6 +82,7 @@ func (s *InMemoryStorage) SetCounterMetrics(name string, val metrics.Counter) {
 	} else {
 		s.hasUpdates = true
 	}
+	return nil
 }
 
 func (s *InMemoryStorage) GetCounterMetrics(name string) (metrics.Counter, bool) {
@@ -88,7 +92,7 @@ func (s *InMemoryStorage) GetCounterMetrics(name string) (metrics.Counter, bool)
 	return 0, false
 }
 
-func (s *InMemoryStorage) SetGaugeMetrics(name string, val metrics.Gauge) {
+func (s *InMemoryStorage) SetGaugeMetrics(name string, val metrics.Gauge) error {
 	log.Println("InMemoryStorage::SetGaugeMetrics::info: started")
 	s.Metrics.GaugeMetrics[name] = val
 	if s.syncSave {
@@ -96,6 +100,7 @@ func (s *InMemoryStorage) SetGaugeMetrics(name string, val metrics.Gauge) {
 	} else {
 		s.hasUpdates = true
 	}
+	return nil
 }
 
 func (s *InMemoryStorage) GetGaugeMetrics(name string) (metrics.Gauge, bool) {
@@ -114,11 +119,6 @@ func (s *InMemoryStorage) GetKnownMetrics() []string {
 		res = append(res, key)
 	}
 	return res
-}
-
-func StorageFinalizer(s *InMemoryStorage) {
-	log.Println("InMemoryStorage::StorageFinalizer::info: started")
-	s.doSave()
 }
 
 func (s *InMemoryStorage) saveByTimer() {

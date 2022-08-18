@@ -3,19 +3,29 @@ package dbstorage
 import (
 	"context"
 	"database/sql"
+	"errors"
+	"github.com/nivanov045/silver-octo-train/internal/metrics"
 	"log"
 	"runtime"
 	"time"
-
-	"github.com/nivanov045/silver-octo-train/internal/metrics"
 )
+
+const checkColumnQuery = `SELECT EXISTS (SELECT column_name FROM information_schema.columns WHERE table_name='metrics' and column_name=$1);`
+const checkTableQuery = `SELECT EXISTS (SELECT FROM information_schema.tables WHERE  table_name = 'metrics');`
+const createTableQuery = `CREATE TABLE metrics (mytype text, myid text, myvalue double precision, delta bigint, uid text UNIQUE);`
+const dropTableQuery = `DROP TABLE metrics;`
+const insertCounterMetricQuery = `INSERT INTO metrics(mytype, myid, delta, uid) VALUES ('counter', $1, $2, $3) ON CONFLICT (uid) DO UPDATE SET delta=$2;`
+const insertGaugeMetricQuery = `INSERT INTO metrics(mytype, myid, myvalue, uid) VALUES ('gauge', $1, $2, $3) ON CONFLICT (uid) DO UPDATE SET myvalue=$2;`
+const getAllMetricsQuery = `SELECT DISTINCT myid FROM metrics`
+const getCounterMetricQuery = `SELECT delta FROM metrics WHERE mytype='counter' AND myid=$1;`
+const getGaugeMetricQuery = `SELECT myvalue FROM metrics WHERE mytype='gauge' AND myid=$1;`
 
 type DBStorage struct {
 	databasePath string
 	db           *sql.DB
 }
 
-func New(databasePath string) *DBStorage {
+func New(databasePath string) (*DBStorage, error) {
 	log.Println("DBStorage::New::info: started")
 	var res = &DBStorage{
 		databasePath: databasePath,
@@ -24,32 +34,38 @@ func New(databasePath string) *DBStorage {
 	var err error
 	res.db, err = sql.Open("postgres", databasePath)
 	if err != nil {
-		log.Panic("DBStorage::New::error: in db open:", err)
+		log.Println("DBStorage::New::error: in db open:", err)
+		return nil, errors.New(`can't create database'`)
 	}
-	runtime.SetFinalizer(res, storageFinalizer)
+	runtime.SetFinalizer(res, func(s *DBStorage) {
+		log.Println("DBStorage::storageFinalizer::info: started")
+		defer s.db.Close()
+	})
 
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 	var value bool
-	row := res.db.QueryRowContext(ctx,
-		`SELECT EXISTS (SELECT FROM information_schema.tables WHERE  table_name = 'metrics');`)
+	row := res.db.QueryRowContext(ctx, checkTableQuery)
 	err = row.Scan(&value)
 	if err != nil {
-		log.Panic("DBStorage::New::error: in table check:", err)
+		log.Println("DBStorage::New::error: in table check:", err)
+		return nil, errors.New(`can't create database'`)
 	}
 	if !value {
-		_, err = res.db.Exec(`CREATE TABLE metrics (mytype text, myid text, myvalue double precision, delta bigint, uid text UNIQUE);`)
+		_, err = res.db.Exec(createTableQuery)
 		if err != nil {
-			log.Panic("DBStorage::New::error: in table creation:", err)
+			log.Println("DBStorage::New::error: in table creation:", err)
+			return nil, errors.New(`can't create database'`)
 		}
 	} else {
 		tableIsOk := true
 		for _, name := range []string{"mytype", "myid", "myvalue", "delta", "uid"} {
 			var value bool
-			row := res.db.QueryRowContext(ctx, `SELECT EXISTS (SELECT column_name FROM information_schema.columns WHERE table_name='metrics' and column_name=$1);`, name)
+			row := res.db.QueryRowContext(ctx, checkColumnQuery, name)
 			err = row.Scan(&value)
 			if err != nil {
-				log.Panic("DBStorage::New::error: in columns check:", err)
+				log.Println("DBStorage::New::error: in columns check:", err)
+				return nil, errors.New(`can't create database'`)
 			}
 			if !value {
 				tableIsOk = false
@@ -59,36 +75,40 @@ func New(databasePath string) *DBStorage {
 
 		if !tableIsOk {
 			log.Println("DBStorage::New::info: table is wrong, drop and create")
-			_, err = res.db.Exec(`DROP TABLE metrics;`)
+			_, err = res.db.Exec(dropTableQuery)
 			if err != nil {
-				log.Panic("DBStorage::New::error: in table drop:", err)
+				log.Println("DBStorage::New::error: in table drop:", err)
+				return nil, errors.New(`can't create database'`)
 			}
-			_, err = res.db.Exec(`CREATE TABLE metrics (mytype text, myid text, myvalue double precision, delta bigint, uid text UNIQUE);`)
+			_, err = res.db.Exec(createTableQuery)
 			if err != nil {
-				log.Panic("DBStorage::New::error: in table creation:", err)
+				log.Println("DBStorage::New::error: in table creation:", err)
+				return nil, errors.New(`can't create database'`)
 			}
 		} else {
 			log.Println("DBStorage::New::info: existing table is OK")
 		}
 	}
-	return res
+	return res, nil
 }
 
-func (s *DBStorage) SetCounterMetrics(name string, val metrics.Counter) {
+func (s *DBStorage) SetCounterMetrics(name string, val metrics.Counter) error {
 	log.Println("DBStorage::SetCounterMetrics::info: started")
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
-	_, err := s.db.ExecContext(ctx, `INSERT INTO metrics(mytype, myid, delta, uid) VALUES ('counter', $1, $2, $3) ON CONFLICT (uid) DO UPDATE SET delta = $2;`, name, val, "counter"+name)
+	_, err := s.db.ExecContext(ctx, insertCounterMetricQuery, name, val, "counter"+name)
 	if err != nil {
 		log.Println("DBStorage::SetCounterMetrics::error: in ExecContext:", err)
+		return err
 	}
+	return nil
 }
 
 func (s *DBStorage) GetCounterMetrics(name string) (metrics.Counter, bool) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 	var value int64
-	row := s.db.QueryRowContext(ctx, "SELECT delta FROM metrics WHERE mytype='counter' AND myid=$1;", name)
+	row := s.db.QueryRowContext(ctx, getCounterMetricQuery, name)
 	err := row.Scan(&value)
 	if err != nil {
 		log.Println("DBStorage::GetCounterMetrics::info: in QueryRowContext:", err)
@@ -97,21 +117,23 @@ func (s *DBStorage) GetCounterMetrics(name string) (metrics.Counter, bool) {
 	return metrics.Counter(value), true
 }
 
-func (s *DBStorage) SetGaugeMetrics(name string, val metrics.Gauge) {
+func (s *DBStorage) SetGaugeMetrics(name string, val metrics.Gauge) error {
 	log.Println("DBStorage::SetGaugeMetrics::info: started")
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
-	_, err := s.db.ExecContext(ctx, "INSERT INTO metrics(mytype, myid, myvalue, uid) VALUES ('gauge', $1, $2, $3) ON CONFLICT (uid) DO UPDATE SET myvalue = $2;", name, val, "gauge"+name)
+	_, err := s.db.ExecContext(ctx, insertGaugeMetricQuery, name, val, "gauge"+name)
 	if err != nil {
 		log.Println("DBStorage::SetGaugeMetrics::error: in ExecContext:", err)
+		return err
 	}
+	return nil
 }
 
 func (s *DBStorage) GetGaugeMetrics(name string) (metrics.Gauge, bool) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 	var value float64
-	row := s.db.QueryRowContext(ctx, "SELECT myvalue FROM metrics WHERE mytype='gauge' AND myid=$1;", name)
+	row := s.db.QueryRowContext(ctx, getGaugeMetricQuery, name)
 	err := row.Scan(&value)
 	if err != nil {
 		log.Println("DBStorage::GetGaugeMetrics::info: in QueryRowContext:", err)
@@ -124,7 +146,7 @@ func (s *DBStorage) GetKnownMetrics() []string {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 	var res []string
-	rows, err := s.db.QueryContext(ctx, "SELECT DISTINCT myid FROM metrics")
+	rows, err := s.db.QueryContext(ctx, getAllMetricsQuery)
 	if err != nil {
 		log.Println("DBStorage::GetKnownMetrics::info: in QueryContext:", err)
 		return res
@@ -155,9 +177,4 @@ func (s *DBStorage) IsDBConnected() bool {
 		return false
 	}
 	return true
-}
-
-func storageFinalizer(s *DBStorage) {
-	log.Println("DBStorage::storageFinalizer::info: started")
-	defer s.db.Close()
 }

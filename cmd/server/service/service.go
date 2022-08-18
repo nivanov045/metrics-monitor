@@ -13,12 +13,12 @@ import (
 )
 
 type Storage interface {
-	SetGaugeMetrics(name string, val metrics.Gauge)
-	GetGaugeMetrics(name string) (metrics.Gauge, bool)
-	SetCounterMetrics(name string, val metrics.Counter)
 	GetCounterMetrics(name string) (metrics.Counter, bool)
+	GetGaugeMetrics(name string) (metrics.Gauge, bool)
 	GetKnownMetrics() []string
 	IsDBConnected() bool
+	SetCounterMetrics(name string, val metrics.Counter) error
+	SetGaugeMetrics(name string, val metrics.Gauge) error
 }
 
 type service struct {
@@ -37,7 +37,7 @@ const (
 
 func (ser *service) ParseAndSave(s []byte) error {
 	log.Println("service::ParseAndSave::info: started:", string(s))
-	var m metrics.MetricsInterface
+	var m metrics.Interface
 	err := json.Unmarshal(s, &m)
 	if err != nil {
 		log.Println("service::ParseAndSave::warning: can't unmarshal with error:", err)
@@ -56,7 +56,11 @@ func (ser *service) ParseAndSave(s []byte) error {
 			log.Println("service::ParseAndSave::info: wrong hash")
 			return errors.New("wrong hash")
 		}
-		ser.storage.SetGaugeMetrics(metricName, metrics.Gauge(*value))
+		err = ser.storage.SetGaugeMetrics(metricName, metrics.Gauge(*value))
+		if err != nil {
+			log.Println("service::ParseAndSave::error: problem in metrics saving:", err)
+			return errors.New("problem in metrics saving")
+		}
 	} else if metricType == counter {
 		if m.Delta == nil {
 			log.Println("service::ParseAndSave::info: counter delta is empty")
@@ -70,10 +74,18 @@ func (ser *service) ParseAndSave(s []byte) error {
 		exVal, ok := ser.storage.GetCounterMetrics(metricName)
 		if !ok {
 			log.Println("service::ParseAndSave::info: new counter metric")
-			ser.storage.SetCounterMetrics(metricName, metrics.Counter(value))
+			err = ser.storage.SetCounterMetrics(metricName, metrics.Counter(value))
+			if err != nil {
+				log.Println("service::ParseAndSave::error: problem in metrics saving:", err)
+				return errors.New("problem in metrics saving")
+			}
 		} else {
 			log.Println("service::ParseAndSave::info: update counter metric")
-			ser.storage.SetCounterMetrics(metricName, metrics.Counter(int64(exVal)+value))
+			err = ser.storage.SetCounterMetrics(metricName, metrics.Counter(int64(exVal)+value))
+			if err != nil {
+				log.Println("service::ParseAndSave::error: problem in metrics saving:", err)
+				return errors.New("problem in metrics saving")
+			}
 		}
 	} else {
 		log.Println("service::ParseAndSave::info: unknown metrics type")
@@ -84,7 +96,7 @@ func (ser *service) ParseAndSave(s []byte) error {
 
 func (ser *service) ParseAndGet(s []byte) ([]byte, error) {
 	log.Println("service::ParseAndGet::info: started:", string(s))
-	var m metrics.MetricsInterface
+	var m metrics.Interface
 	err := json.Unmarshal(s, &m)
 	if err != nil {
 		log.Println("service::ParseAndGet::warning: can't unmarshal with error:", err)
@@ -123,7 +135,7 @@ func (ser *service) ParseAndGet(s []byte) ([]byte, error) {
 		}
 		marshal, err := json.Marshal(m)
 		if err != nil {
-			log.Panic("service::ParseAndGet::error: can't marshal caunter metric with:", err)
+			log.Panic("service::ParseAndGet::error: can't marshal counter metric with:", err)
 			return nil, err
 		}
 		return marshal, nil
@@ -132,7 +144,7 @@ func (ser *service) ParseAndGet(s []byte) ([]byte, error) {
 	return nil, errors.New("wrong metrics type")
 }
 
-func (ser *service) checkHash(m metrics.MetricsInterface) bool {
+func (ser *service) checkHash(m metrics.Interface) bool {
 	hash := createHash([]byte(ser.key), m)
 	received, _ := hex.DecodeString(m.Hash)
 	if len(ser.key) > 0 && !hmac.Equal(received, hash) {
@@ -142,7 +154,7 @@ func (ser *service) checkHash(m metrics.MetricsInterface) bool {
 	return true
 }
 
-func createHash(key []byte, m metrics.MetricsInterface) []byte {
+func createHash(key []byte, m metrics.Interface) []byte {
 	h := hmac.New(sha256.New, key)
 	if m.MType == gauge {
 		h.Write([]byte(fmt.Sprintf("%s:gauge:%f", m.ID, *m.Value)))
@@ -162,7 +174,7 @@ func (ser *service) IsDBConnected() bool {
 
 func (ser *service) ParseAndSaveSeveral(s []byte) error {
 	log.Println("service::ParseAndSaveSeveral::info: started:", string(s))
-	var mall []metrics.MetricsInterface
+	var mall []metrics.Interface
 	err := json.Unmarshal(s, &mall)
 	if err != nil {
 		log.Println("service::ParseAndSaveSeveral::warning: can't unmarshal with error:", err)
@@ -182,7 +194,11 @@ func (ser *service) ParseAndSaveSeveral(s []byte) error {
 				log.Println("service::ParseAndSaveSeveral::info: wrong hash")
 				continue
 			}
-			ser.storage.SetGaugeMetrics(metricName, metrics.Gauge(*value))
+			err = ser.storage.SetGaugeMetrics(metricName, metrics.Gauge(*value))
+			if err != nil {
+				log.Println("service::ParseAndSave::error: problem in metrics saving:", err)
+				continue
+			}
 		} else if metricType == counter {
 			if m.Delta == nil {
 				log.Println("service::ParseAndSaveSeveral::info: counter delta is empty")
@@ -196,10 +212,18 @@ func (ser *service) ParseAndSaveSeveral(s []byte) error {
 			exVal, ok := ser.storage.GetCounterMetrics(metricName)
 			if !ok {
 				log.Println("service::ParseAndSaveSeveral::info: new counter metric")
-				ser.storage.SetCounterMetrics(metricName, metrics.Counter(value))
+				err = ser.storage.SetCounterMetrics(metricName, metrics.Counter(value))
+				if err != nil {
+					log.Println("service::ParseAndSave::error: problem in metrics saving:", err)
+					continue
+				}
 			} else {
 				log.Println("service::ParseAndSaveSeveral::info: update counter metric")
-				ser.storage.SetCounterMetrics(metricName, metrics.Counter(int64(exVal)+value))
+				err = ser.storage.SetCounterMetrics(metricName, metrics.Counter(int64(exVal)+value))
+				if err != nil {
+					log.Println("service::ParseAndSave::error: problem in metrics saving:", err)
+					continue
+				}
 			}
 		} else {
 			log.Println("service::ParseAndSaveSeveral::info: unknown metrics type")
