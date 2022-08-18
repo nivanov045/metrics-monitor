@@ -117,7 +117,7 @@ func (s *DBStorage) GetGaugeMetrics(name string) (metrics.Gauge, bool) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 	var value float64
-	row := s.db.QueryRowContext(ctx, "SELECT value FROM metrics WHERE mytype='gauge' AND myid=$1;", name)
+	row := s.db.QueryRowContext(ctx, "SELECT myvalue FROM metrics WHERE mytype='gauge' AND myid=$1;", name)
 	err := row.Scan(&value)
 	if err != nil {
 		log.Println("DBStorage::GetGaugeMetrics: error in QueryRowContext", err)
