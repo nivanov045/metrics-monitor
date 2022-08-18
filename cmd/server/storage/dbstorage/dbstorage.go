@@ -40,13 +40,13 @@ func New(databasePath string) *DBStorage {
 	if err != nil {
 		log.Panic("DBStorage::New: error in table check:", err)
 	}
-	if value == false {
+	if !value {
 		_, err = res.db.Exec(`CREATE TABLE metrics (mytype text, myid text, myvalue double precision, delta bigint, uid text UNIQUE);`)
 		if err != nil {
 			log.Panic("DBStorage::New: error in table creation:", err)
 		}
 	} else {
-		table_is_ok := true
+		tableIsOk := true
 		for _, name := range []string{"mytype", "myid", "myvalue", "delta", "uid"} {
 			var value bool
 			row := res.db.QueryRowContext(ctx,
@@ -57,13 +57,13 @@ func New(databasePath string) *DBStorage {
 			if err != nil {
 				log.Panic("DBStorage::New: error in columns check:", err)
 			}
-			if value == false {
-				table_is_ok = false
+			if !value {
+				tableIsOk = false
 				break
 			}
 		}
 
-		if table_is_ok == false {
+		if !tableIsOk {
 			log.Println("DBStorage::New: table is wrong, drop and create")
 			_, err = res.db.Exec(`DROP TABLE metrics;`)
 			if err != nil {
@@ -133,6 +133,10 @@ func (s *DBStorage) GetKnownMetrics() []string {
 	rows, err := s.db.QueryContext(ctx, "SELECT DISTINCT myid FROM metrics")
 	if err != nil {
 		log.Println("DBStorage::GetKnownMetrics: error in QueryContext", err)
+		return res
+	}
+	if rows.Err() != nil {
+		log.Println("DBStorage::GetKnownMetrics: error in rows:", err)
 		return res
 	}
 	for rows.Next() {
