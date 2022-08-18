@@ -15,7 +15,7 @@ type DBStorage struct {
 	db           *sql.DB
 }
 
-func New(databasePath string, restore bool) *DBStorage {
+func New(databasePath string) *DBStorage {
 	log.Println("DBStorage::New: started")
 	var res = &DBStorage{
 		databasePath: databasePath,
@@ -28,55 +28,65 @@ func New(databasePath string, restore bool) *DBStorage {
 	}
 	runtime.SetFinalizer(res, storageFinalizer)
 
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
-	var value bool
-	row := res.db.QueryRowContext(ctx,
-		`SELECT EXISTS (
-			 	SELECT FROM information_schema.tables 
-			   	WHERE  table_name = 'metrics'
-			   	);`)
-	err = row.Scan(&value)
+	//ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	//defer cancel()
+	log.Println("DBStorage::New: drop and create table")
+	_, err = res.db.Exec(`DROP TABLE IF EXISTS metrics;`)
 	if err != nil {
-		log.Panic("DBStorage::New: error in table check:", err)
+		log.Panic("DBStorage::New: error in table drop:", err)
 	}
-	if !restore || value == false {
-		_, err = res.db.Exec(`CREATE TABLE metrics (mytype text, myid text, myvalue double precision, delta integer, uid text UNIQUE);`)
+	_, err = res.db.Exec(`CREATE TABLE metrics (mytype text, myid text, myvalue double precision, delta integer, uid text UNIQUE);`)
+	if err != nil {
+		log.Panic("DBStorage::New: error in table creation:", err)
+	}
+	/*
+		var value bool
+		row := res.db.QueryRowContext(ctx,
+			`SELECT EXISTS (
+				 	SELECT FROM information_schema.tables
+				   	WHERE  table_name = 'metrics'
+				   	);`)
+		err = row.Scan(&value)
 		if err != nil {
-			log.Panic("DBStorage::New: error in table creation:", err)
+			log.Panic("DBStorage::New: error in table check:", err)
 		}
-	} else {
-		table_is_ok := true
-		for _, name := range []string{"mytype", "myid", "myvalue", "delta", "uid"} {
-			var value bool
-			row := res.db.QueryRowContext(ctx,
-				`SELECT EXISTS (SELECT column_name
-					FROM information_schema.columns
-					WHERE table_name='metrics' and column_name=$1);`, name)
-			err = row.Scan(&value)
-			if err != nil {
-				log.Panic("DBStorage::New: error in columns check:", err)
-			}
-			if value == false {
-				table_is_ok = false
-				break
-			}
-		}
-
-		if table_is_ok == false {
-			log.Println("DBStorage::New: table is wrong, drop and create")
-			_, err = res.db.Exec(`DROP TABLE metrics;`)
-			if err != nil {
-				log.Panic("DBStorage::New: error in table drop:", err)
-			}
+		if value == false {
 			_, err = res.db.Exec(`CREATE TABLE metrics (mytype text, myid text, myvalue double precision, delta integer, uid text UNIQUE);`)
 			if err != nil {
 				log.Panic("DBStorage::New: error in table creation:", err)
 			}
 		} else {
-			log.Println("DBStorage::New: existing table is OK")
-		}
-	}
+			table_is_ok := true
+			for _, name := range []string{"mytype", "myid", "myvalue", "delta", "uid"} {
+				var value bool
+				row := res.db.QueryRowContext(ctx,
+					`SELECT EXISTS (SELECT column_name
+						FROM information_schema.columns
+						WHERE table_name='metrics' and column_name=$1);`, name)
+				err = row.Scan(&value)
+				if err != nil {
+					log.Panic("DBStorage::New: error in columns check:", err)
+				}
+				if value == false {
+					table_is_ok = false
+					break
+				}
+			}
+
+			if table_is_ok == false {
+				log.Println("DBStorage::New: table is wrong, drop and create")
+				_, err = res.db.Exec(`DROP TABLE metrics;`)
+				if err != nil {
+					log.Panic("DBStorage::New: error in table drop:", err)
+				}
+				_, err = res.db.Exec(`CREATE TABLE metrics (mytype text, myid text, myvalue double precision, delta integer, uid text UNIQUE);`)
+				if err != nil {
+					log.Panic("DBStorage::New: error in table creation:", err)
+				}
+			} else {
+				log.Println("DBStorage::New: existing table is OK")
+			}
+		}*/
 	return res
 }
 

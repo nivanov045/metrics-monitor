@@ -26,7 +26,7 @@ type storage struct {
 func New(storeInterval time.Duration, storeFile string, restore bool, databasePath string) *storage {
 	var res = &storage{}
 	if len(databasePath) > 0 {
-		res.is = dbstorage.New(databasePath, restore)
+		res.is = dbstorage.New(databasePath)
 	} else {
 		res.is = inmemorystorage.New(storeInterval, storeFile, restore)
 	}
