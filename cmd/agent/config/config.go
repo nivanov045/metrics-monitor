@@ -1,10 +1,11 @@
-package agentconfig
+package config
 
 import (
 	"flag"
-	"github.com/caarlos0/env/v6"
 	"log"
 	"time"
+
+	"github.com/caarlos0/env/v6"
 )
 
 type Config struct {
@@ -32,7 +33,7 @@ func (cfg *Config) buildFromFlags() {
 func (cfg *Config) buildFromEnv() error {
 	err := env.Parse(cfg)
 	if err != nil {
-		log.Println("agentconfig::buildFromEnv: error in env parsing:", err)
+		log.Println("config::buildFromEnv::error:", err)
 	}
 	return err
 }

@@ -26,7 +26,7 @@ func New(service Service) *api {
 }
 
 func (a *api) Run(address string) error {
-	log.Println("api::Run: started with addr", address)
+	log.Println("api::Run::info: started with addr:", address)
 	r := chi.NewRouter()
 
 	r.Use(middleware.RequestID)
@@ -44,21 +44,21 @@ func (a *api) Run(address string) error {
 }
 
 func (a *api) updateMetricsHandler(w http.ResponseWriter, r *http.Request) {
-	log.Println("api::updateMetricsHandler: started ", r)
+	log.Println("api::updateMetricsHandler::info: started")
 	w.Header().Set("content-type", "application/json")
 	defer r.Body.Close()
 	respBody, err := ioutil.ReadAll(r.Body)
 	if err != nil {
-		log.Println("api::updateMetricsHandler: can't read response body with", err)
+		log.Println("api::updateMetricsHandler::warning: can't read response body with:", err)
 		w.WriteHeader(http.StatusNotFound)
 		w.Write([]byte("{}"))
 		return
 	}
 	if err := a.service.ParseAndSave(respBody); err == nil {
-		log.Println("api::updateMetricsHandler: parsed and saved")
+		log.Println("api::updateMetricsHandler::info: parsed and saved")
 		w.WriteHeader(http.StatusOK)
 	} else {
-		log.Println("api::updateMetricsHandler: error in parsing:", err)
+		log.Println("api::updateMetricsHandler::warning: in parsing and saving:", err)
 		if err.Error() == "wrong metrics type" {
 			w.WriteHeader(http.StatusNotImplemented)
 		} else if err.Error() == "can't parse value" || err.Error() == "wrong hash" {
@@ -68,25 +68,24 @@ func (a *api) updateMetricsHandler(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	w.Write([]byte("{}"))
-	log.Println("api::updateMetricsHandler: response:", w)
 }
 
 func (a *api) getMetricsHandler(w http.ResponseWriter, r *http.Request) {
-	log.Println("api::getMetricsHandler: started", r)
+	log.Println("api::getMetricsHandler::info: started")
 	w.Header().Set("content-type", "application/json")
 	defer r.Body.Close()
 	respBody, err := ioutil.ReadAll(r.Body)
 	if err != nil {
-		log.Println("api::getMetricsHandler: can't read response body with", err)
+		log.Println("api::getMetricsHandler::warning: can't read response body with:", err)
 		w.WriteHeader(http.StatusNotFound)
 		return
 	}
 	if val, err := a.service.ParseAndGet(respBody); err == nil {
-		log.Println("api::getMetricsHandler: parsed and get")
+		log.Println("api::getMetricsHandler::info: parsed and get")
 		w.WriteHeader(http.StatusOK)
 		w.Write(val)
 	} else {
-		log.Println("api::getMetricsHandler: error in parsing:", err)
+		log.Println("api::getMetricsHandler::warning: in parsing:", err)
 		if err.Error() == "wrong metrics type" {
 			w.WriteHeader(http.StatusNotImplemented)
 		} else if err.Error() == "no such metric" {
@@ -99,7 +98,7 @@ func (a *api) getMetricsHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func (a *api) rootHandler(w http.ResponseWriter, r *http.Request) {
-	log.Println("api::rootHandler: started")
+	log.Println("api::rootHandler::info: started")
 	w.Header().Set("content-type", "text/html")
 	for _, val := range a.service.GetKnownMetrics() {
 		w.Write([]byte(val + "\n"))
@@ -107,7 +106,7 @@ func (a *api) rootHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func (a *api) pingDBHandler(w http.ResponseWriter, r *http.Request) {
-	log.Println("api::pingDBHandler: started")
+	log.Println("api::pingDBHandler::info: started")
 	w.Header().Set("content-type", "text/html")
 	if a.service.IsDBConnected() {
 		w.WriteHeader(http.StatusOK)
@@ -117,31 +116,24 @@ func (a *api) pingDBHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func (a *api) updatesMetricsHandler(w http.ResponseWriter, r *http.Request) {
-	log.Println("api::updatesMetricsHandler: started ", r)
+	log.Println("api::updatesMetricsHandler::info: started")
 	w.Header().Set("content-type", "application/json")
 	defer r.Body.Close()
 	respBody, err := ioutil.ReadAll(r.Body)
 	if err != nil {
-		log.Println("api::updatesMetricsHandler: can't read response body with", err)
+		log.Println("api::updatesMetricsHandler::warning can't read response body with:", err)
 		w.WriteHeader(http.StatusNotFound)
 		w.Write([]byte("{}"))
 		return
 	}
 	if err := a.service.ParseAndSaveSeveral(respBody); err == nil {
-		log.Println("api::updatesMetricsHandler: parsed and saved")
+		log.Println("api::updatesMetricsHandler::info: parsed and saved")
 		w.WriteHeader(http.StatusOK)
 	} else {
-		//log.Println("api::updatesMetricsHandler: error in parsing:", err)
-		//if err.Error() == "wrong metrics type" {
-		//	w.WriteHeader(http.StatusNotImplemented)
-		//} else if err.Error() == "can't parse value" || err.Error() == "wrong hash" {
-		//	w.WriteHeader(http.StatusBadRequest)
-		//} else {
+		log.Println("api::updatesMetricsHandler::warning: wrong group query:", err)
 		w.WriteHeader(http.StatusNotFound)
-		//}
 	}
 	w.Write([]byte("{}"))
-	log.Println("api::updatesMetricsHandler: response:", w)
 }
 
 type API interface {

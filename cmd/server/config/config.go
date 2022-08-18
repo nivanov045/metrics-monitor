@@ -1,4 +1,4 @@
-package serverconfig
+package config
 
 import (
 	"flag"
@@ -37,7 +37,7 @@ func (cfg *Config) buildFromFlags() {
 func (cfg *Config) buildFromEnv() error {
 	err := env.Parse(cfg)
 	if err != nil {
-		log.Println("serverconfig::buildFromEnv: error in env parsing:", err)
+		log.Println("serverconfig::buildFromEnv::error: in env parsing:", err)
 	}
 	return err
 }
