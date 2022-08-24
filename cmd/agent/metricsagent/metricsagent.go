@@ -2,11 +2,15 @@ package metricsagent
 
 import (
 	"context"
+	"crypto/hmac"
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
-	"github.com/nivanov045/silver-octo-train/cmd/agent/agentconfig"
+	"fmt"
 	"log"
 	"time"
 
+	"github.com/nivanov045/silver-octo-train/cmd/agent/config"
 	"github.com/nivanov045/silver-octo-train/cmd/agent/metricsperformer"
 	"github.com/nivanov045/silver-octo-train/cmd/agent/requester"
 	"github.com/nivanov045/silver-octo-train/internal/metrics"
@@ -14,11 +18,11 @@ import (
 
 type metricsagent struct {
 	metricsChannel chan metrics.Metrics
-	config         agentconfig.Config
+	config         config.Config
 	requester      requester.Requester
 }
 
-func New(c agentconfig.Config) *metricsagent {
+func New(c config.Config) *metricsagent {
 	return &metricsagent{
 		metricsChannel: make(chan metrics.Metrics, 1),
 		config:         c,
@@ -32,16 +36,17 @@ func (a *metricsagent) updateMetrics() {
 	for {
 		select {
 		case <-ctx.Done():
-			log.Println("metricsagent::updateMetrics: ctx.Done")
+			log.Println("metricsagent::updateMetrics::info: ctx.Done")
 			return
 		case <-ticker.C:
-			log.Println("metricsagent::updateMetrics: time to update")
-			m := <-a.metricsChannel
-			a.metricsChannel <- m
-			metricsperformer.New().UpdateMetrics(m)
+			log.Println("metricsagent::updateMetrics::info: start update")
+			mOriginal := <-a.metricsChannel
+			mCopy := mOriginal.Clone()
+			a.metricsChannel <- mOriginal
+			metricsperformer.New().UpdateMetrics(mCopy)
 			<-a.metricsChannel
-			a.metricsChannel <- m
-			log.Println("metricsagent::updateMetrics: metrics were updated")
+			a.metricsChannel <- mCopy
+			log.Println("metricsagent::updateMetrics::info: finish update")
 		}
 	}
 }
@@ -52,55 +57,134 @@ func (a *metricsagent) sendMetrics() {
 	for {
 		select {
 		case <-ctx.Done():
-			log.Println("metricsagent::sendMetrics: ctx.Done")
+			log.Println("metricsagent::sendMetrics::info: ctx.Done")
 			return
 		case <-ticker.C:
-			m := <-a.metricsChannel
-			a.metricsChannel <- m
+			mOriginal := <-a.metricsChannel
+			m := mOriginal.Clone()
+			a.metricsChannel <- mOriginal
 			for key, val := range m.GaugeMetrics {
 				asFloat := float64(val)
-				metricForSend := metrics.MetricsInterface{
+				metricForSend := metrics.Interface{
 					ID:    key,
 					MType: "gauge",
 					Delta: nil,
 					Value: &asFloat,
 				}
+				if len(a.config.Key) > 0 {
+					hash := createHash([]byte(a.config.Key), metricForSend)
+					metricForSend.Hash = hex.EncodeToString(hash)
+				}
 				marshalled, err := json.Marshal(metricForSend)
 				if err != nil {
-					log.Panicln("metricsagent::sendMetrics: can't marshal gauge metric for sand with", err)
+					log.Println("metricsagent::sendMetrics::error: can't marshal gauge metric for sand with:", err)
+					return
 				}
 				err = a.requester.Send(marshalled)
 				if err != nil {
-					log.Println("metricsagent::sendMetrics: can't send gauge with", err)
+					log.Println("metricsagent::sendMetrics:error: can't send gauge with:", err)
 				}
 			}
 			pc := m.CounterMetrics["PollCount"]
-			asint := int64(pc)
-			metricForSend := metrics.MetricsInterface{
+			asInt := int64(pc)
+			metricForSend := metrics.Interface{
 				ID:    "PollCount",
 				MType: "counter",
-				Delta: &asint,
+				Delta: &asInt,
 				Value: nil,
+			}
+			if len(a.config.Key) > 0 {
+				hash := createHash([]byte(a.config.Key), metricForSend)
+				metricForSend.Hash = hex.EncodeToString(hash)
 			}
 			marshalled, err := json.Marshal(metricForSend)
 			if err != nil {
-				log.Panicln("metricsagent::sendMetrics: can't marshal PollCount metric for sand with", err)
+				log.Println("metricsagent::sendMetrics::error: can't marshal PollCount metric for sand with:", err)
+				return
 			}
 			err = a.requester.Send(marshalled)
 			if err != nil {
-				log.Println("metricsagent::sendMetrics: can't send PollCount with", err)
+				log.Println("metricsagent::sendMetrics::error: can't send PollCount with:", err)
+				return
 			}
-			log.Println("metricsagent::sendMetrics: metrics were sent")
+			log.Println("metricsagent::sendMetrics::info: metrics were sent")
 		}
 	}
 }
 
+func createHash(key []byte, m metrics.Interface) []byte {
+	h := hmac.New(sha256.New, key)
+	if m.MType == "gauge" {
+		h.Write([]byte(fmt.Sprintf("%s:gauge:%f", m.ID, *m.Value)))
+		log.Println("metricsagent::createHash: hash by", fmt.Sprintf("%s:gauge:%f", m.ID, *m.Value), "with key", key)
+	} else {
+		h.Write([]byte(fmt.Sprintf("%s:counter:%d", m.ID, *m.Delta)))
+		log.Println("metricsagent::createHash: hash by", fmt.Sprintf("%s:counter:%d", m.ID, *m.Delta), "with key", key)
+	}
+	return h.Sum(nil)
+}
+
 func (a *metricsagent) Start() {
-	log.Println("metricsagent::Start: metricsagent started")
+	log.Println("metricsagent::Start::info: metricsagent started")
 	a.metricsChannel <- metrics.Metrics{
 		GaugeMetrics:   map[string]metrics.Gauge{},
 		CounterMetrics: map[string]metrics.Counter{},
 	}
 	go a.updateMetrics()
-	go a.sendMetrics()
+	go a.sendSeveralMetrics()
+}
+
+func (a *metricsagent) sendSeveralMetrics() {
+	ticker := time.NewTicker(a.config.ReportInterval)
+	ctx := context.Background()
+	for {
+		select {
+		case <-ctx.Done():
+			log.Println("metricsagent::sendSeveralMetrics::info: ctx.Done")
+			return
+		case <-ticker.C:
+			mOriginal := <-a.metricsChannel
+			m := mOriginal.Clone()
+			a.metricsChannel <- mOriginal
+			var toSend []metrics.Interface
+			for key, val := range m.GaugeMetrics {
+				asFloat := float64(val)
+				metricForSend := metrics.Interface{
+					ID:    key,
+					MType: "gauge",
+					Delta: nil,
+					Value: &asFloat,
+				}
+				if len(a.config.Key) > 0 {
+					hash := createHash([]byte(a.config.Key), metricForSend)
+					metricForSend.Hash = hex.EncodeToString(hash)
+				}
+				toSend = append(toSend, metricForSend)
+			}
+			pc := m.CounterMetrics["PollCount"]
+			asInt := int64(pc)
+			metricForSend := metrics.Interface{
+				ID:    "PollCount",
+				MType: "counter",
+				Delta: &asInt,
+				Value: nil,
+			}
+			if len(a.config.Key) > 0 {
+				hash := createHash([]byte(a.config.Key), metricForSend)
+				metricForSend.Hash = hex.EncodeToString(hash)
+			}
+			toSend = append(toSend, metricForSend)
+			marshalled, err := json.Marshal(toSend)
+			if err != nil {
+				log.Println("metricsagent::sendSeveralMetrics::error: can't marshal PollCount metric for sand with", err)
+				return
+			}
+			err = a.requester.SendSeveral(marshalled)
+			if err != nil {
+				log.Println("metricsagent::sendSeveralMetrics::error: can't send PollCount with", err)
+				return
+			}
+			log.Println("metricsagent::sendSeveralMetrics::info: metrics were sent")
+		}
+	}
 }

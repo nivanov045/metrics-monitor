@@ -2,6 +2,7 @@ package api
 
 import (
 	"encoding/json"
+	"github.com/nivanov045/silver-octo-train/cmd/server/config"
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
@@ -69,12 +70,20 @@ func Test_api_updateMetricsHandler(t *testing.T) {
 			},
 		},
 	}
-	storage := storage.New(0*time.Second, "/tmp/devops-metrics-db.json", false)
-	serv := service.New(storage)
+	myStorage, err := storage.New(config.Config{
+		Address:       "",
+		StoreInterval: 0 * time.Second,
+		StoreFile:     "/tmp/devops-metrics-db.json",
+		Restore:       false,
+		Key:           "",
+		Database:      "",
+	})
+	assert.NoError(t, err)
+	serv := service.New("", myStorage)
 	a := api{serv}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			marshal, err := json.Marshal(metrics.MetricsInterface{
+			marshal, err := json.Marshal(metrics.Interface{
 				ID:    tt.args.name,
 				MType: tt.args.mType,
 				Delta: &tt.args.valueInt,
@@ -100,13 +109,21 @@ func Test_api_getMetricsHandler(t *testing.T) {
 			name: "correct",
 		},
 	}
-	storage := storage.New(0*time.Second, "/tmp/devops-metrics-db.json", false)
-	serv := service.New(storage)
+	myStorage, err := storage.New(config.Config{
+		Address:       "",
+		StoreInterval: 0 * time.Second,
+		StoreFile:     "/tmp/devops-metrics-db.json",
+		Restore:       false,
+		Key:           "",
+		Database:      "",
+	})
+	assert.NoError(t, err)
+	serv := service.New("", myStorage)
 	a := api{serv}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			value := int64(100)
-			marshal, err := json.Marshal(metrics.MetricsInterface{
+			marshal, err := json.Marshal(metrics.Interface{
 				ID:    "TestMetrics",
 				MType: "counter",
 				Delta: &value,
@@ -127,7 +144,7 @@ func Test_api_getMetricsHandler(t *testing.T) {
 			require.NoError(t, err)
 			defer result.Body.Close()
 			assert.Equal(t, http.StatusOK, result.StatusCode)
-			var mi metrics.MetricsInterface
+			var mi metrics.Interface
 			err = json.Unmarshal(respBody, &mi)
 			require.NoError(t, err)
 			assert.Equal(t, int64(100), *mi.Delta)
@@ -145,13 +162,21 @@ func Test_api_rootHandler(t *testing.T) {
 			name: "correct",
 		},
 	}
-	storage := storage.New(0*time.Second, "/tmp/devops-metrics-db.json", false)
-	serv := service.New(storage)
+	myStorage, err := storage.New(config.Config{
+		Address:       "",
+		StoreInterval: 0 * time.Second,
+		StoreFile:     "/tmp/devops-metrics-db.json",
+		Restore:       false,
+		Key:           "",
+		Database:      "",
+	})
+	assert.NoError(t, err)
+	serv := service.New("", myStorage)
 	a := api{serv}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			value := int64(100)
-			marshal, err := json.Marshal(metrics.MetricsInterface{
+			marshal, err := json.Marshal(metrics.Interface{
 				ID:    "TestMetrics",
 				MType: "counter",
 				Delta: &value,

@@ -2,12 +2,14 @@ package service
 
 import (
 	"encoding/json"
+	"github.com/nivanov045/silver-octo-train/cmd/server/crypto"
 	"reflect"
 	"testing"
 	"time"
 
 	"github.com/stretchr/testify/assert"
 
+	"github.com/nivanov045/silver-octo-train/cmd/server/config"
 	"github.com/nivanov045/silver-octo-train/cmd/server/storage"
 	"github.com/nivanov045/silver-octo-train/internal/metrics"
 )
@@ -42,10 +44,19 @@ func Test_service_ParseAndSave(t *testing.T) {
 			},
 		},
 	}
-	ser := service{storage.New(0*time.Second, "/tmp/devops-metrics-db.json", false)}
+	myStorage, err := storage.New(config.Config{
+		Address:       "",
+		StoreInterval: 0 * time.Second,
+		StoreFile:     "/tmp/devops-metrics-db.json",
+		Restore:       false,
+		Key:           "",
+		Database:      "",
+	})
+	assert.NoError(t, err)
+	ser := service{myStorage, crypto.New(""), false}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			v := metrics.MetricsInterface{
+			v := metrics.Interface{
 				ID:    tt.data.name,
 				MType: tt.data.mType,
 				Delta: &tt.data.valueInt,
@@ -94,10 +105,19 @@ func Test_service_ParseAndGet(t *testing.T) {
 			},
 		},
 	}
-	ser := service{storage.New(0*time.Second, "/tmp/devops-metrics-db.json", false)}
+	myStorage, err := storage.New(config.Config{
+		Address:       "",
+		StoreInterval: 0 * time.Second,
+		StoreFile:     "/tmp/devops-metrics-db.json",
+		Restore:       false,
+		Key:           "",
+		Database:      "",
+	})
+	assert.NoError(t, err)
+	ser := service{myStorage, crypto.New(""), false}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			v := metrics.MetricsInterface{
+			v := metrics.Interface{
 				ID:    tt.data.name,
 				MType: tt.data.mType,
 				Delta: &tt.data.valueInt,
@@ -112,7 +132,7 @@ func Test_service_ParseAndGet(t *testing.T) {
 			assert.NoError(t, err)
 			err = ser.ParseAndSave(marshal)
 			assert.NoError(t, err)
-			marshalGet, err := json.Marshal(metrics.MetricsInterface{
+			marshalGet, err := json.Marshal(metrics.Interface{
 				ID:    tt.data.name,
 				MType: tt.data.mType,
 				Delta: nil,
@@ -135,15 +155,11 @@ func Test_service_GetKnownMetrics(t *testing.T) {
 	}
 	tests := []struct {
 		name string
-		ser  *service
 		want []string
 		set  []args
 	}{
 		{
 			name: "correct",
-			ser: &service{
-				storage: storage.New(0*time.Second, "/tmp/devops-metrics-db.json", false),
-			},
 			want: []string{"TestMetricC", "TestMetricG"},
 			set: []args{
 				{
@@ -162,17 +178,28 @@ func Test_service_GetKnownMetrics(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			myStorage, err := storage.New(config.Config{
+				Address:       "",
+				StoreInterval: 0 * time.Second,
+				StoreFile:     "/tmp/devops-metrics-db.json",
+				Restore:       false,
+				Key:           "",
+				Database:      "",
+			})
+			assert.NoError(t, err)
+			ser := service{myStorage, crypto.New(""), false}
 			for _, val := range tt.set {
-				marshal, err := json.Marshal(metrics.MetricsInterface{
+				marshal, err := json.Marshal(metrics.Interface{
 					ID:    val.name,
 					MType: val.mType,
 					Delta: &val.valueInt,
 					Value: &val.valueFloat,
 				})
 				assert.NoError(t, err)
-				tt.ser.ParseAndSave(marshal)
+				err = ser.ParseAndSave(marshal)
+				assert.NoError(t, err)
 			}
-			if got := tt.ser.GetKnownMetrics(); !reflect.DeepEqual(got, tt.want) {
+			if got := ser.GetKnownMetrics(); !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("service.GetKnownMetrics() = %v, want %v", got, tt.want)
 			}
 		})

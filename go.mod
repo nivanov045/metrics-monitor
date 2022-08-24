@@ -4,6 +4,7 @@ go 1.18
 
 require (
 	github.com/caarlos0/env/v6 v6.9.3
+	github.com/lib/pq v1.10.6
 	github.com/stretchr/testify v1.8.0
 )
 
