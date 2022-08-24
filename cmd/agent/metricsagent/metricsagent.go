@@ -74,12 +74,11 @@ func (a *metricsagent) sendMetrics() {
 				if len(a.config.Key) > 0 {
 					hash := createHash([]byte(a.config.Key), metricForSend)
 					metricForSend.Hash = hex.EncodeToString(hash)
-					//log.Println("metricsagent::sendMetrics::info: hash", hash)
-					//log.Println("metricsagent::sendMetrics::info: string(hash)", string(hash))
 				}
 				marshalled, err := json.Marshal(metricForSend)
 				if err != nil {
-					log.Panicln("metricsagent::sendMetrics::error: can't marshal gauge metric for sand with:", err)
+					log.Println("metricsagent::sendMetrics::error: can't marshal gauge metric for sand with:", err)
+					return
 				}
 				err = a.requester.Send(marshalled)
 				if err != nil {
@@ -97,12 +96,11 @@ func (a *metricsagent) sendMetrics() {
 			if len(a.config.Key) > 0 {
 				hash := createHash([]byte(a.config.Key), metricForSend)
 				metricForSend.Hash = hex.EncodeToString(hash)
-				//log.Println("metricsagent::sendMetrics::info: hash", hash)
-				//log.Println("metricsagent::sendMetrics::info: string(hash)", string(hash))
 			}
 			marshalled, err := json.Marshal(metricForSend)
 			if err != nil {
-				log.Panicln("metricsagent::sendMetrics::error: can't marshal PollCount metric for sand with:", err)
+				log.Println("metricsagent::sendMetrics::error: can't marshal PollCount metric for sand with:", err)
+				return
 			}
 			err = a.requester.Send(marshalled)
 			if err != nil {
@@ -160,8 +158,6 @@ func (a *metricsagent) sendSeveralMetrics() {
 				if len(a.config.Key) > 0 {
 					hash := createHash([]byte(a.config.Key), metricForSend)
 					metricForSend.Hash = hex.EncodeToString(hash)
-					//log.Println("metricsagent::sendSeveralMetrics::info: hash", hash)
-					//log.Println("metricsagent::sendSeveralMetrics::info: string(hash)", string(hash))
 				}
 				toSend = append(toSend, metricForSend)
 			}
@@ -176,13 +172,12 @@ func (a *metricsagent) sendSeveralMetrics() {
 			if len(a.config.Key) > 0 {
 				hash := createHash([]byte(a.config.Key), metricForSend)
 				metricForSend.Hash = hex.EncodeToString(hash)
-				//log.Println("metricsagent::sendSeveralMetrics::info: hash", hash)
-				//log.Println("metricsagent::sendSeveralMetrics::info: string(hash)", string(hash))
 			}
 			toSend = append(toSend, metricForSend)
 			marshalled, err := json.Marshal(toSend)
 			if err != nil {
-				log.Panicln("metricsagent::sendSeveralMetrics::error: can't marshal PollCount metric for sand with", err)
+				log.Println("metricsagent::sendSeveralMetrics::error: can't marshal PollCount metric for sand with", err)
+				return
 			}
 			err = a.requester.SendSeveral(marshalled)
 			if err != nil {

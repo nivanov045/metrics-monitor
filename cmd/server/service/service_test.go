@@ -2,6 +2,7 @@ package service
 
 import (
 	"encoding/json"
+	"github.com/nivanov045/silver-octo-train/cmd/server/crypto"
 	"reflect"
 	"testing"
 	"time"
@@ -52,7 +53,7 @@ func Test_service_ParseAndSave(t *testing.T) {
 		Database:      "",
 	})
 	assert.NoError(t, err)
-	ser := service{myStorage, ""}
+	ser := service{myStorage, crypto.New(""), false}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			v := metrics.Interface{
@@ -113,7 +114,7 @@ func Test_service_ParseAndGet(t *testing.T) {
 		Database:      "",
 	})
 	assert.NoError(t, err)
-	ser := service{myStorage, ""}
+	ser := service{myStorage, crypto.New(""), false}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			v := metrics.Interface{
@@ -186,7 +187,7 @@ func Test_service_GetKnownMetrics(t *testing.T) {
 				Database:      "",
 			})
 			assert.NoError(t, err)
-			ser := service{myStorage, ""}
+			ser := service{myStorage, crypto.New(""), false}
 			for _, val := range tt.set {
 				marshal, err := json.Marshal(metrics.Interface{
 					ID:    val.name,

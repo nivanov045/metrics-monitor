@@ -38,7 +38,7 @@ func New(databasePath string) (*DBStorage, error) {
 		return nil, errors.New(`can't create database'`)
 	}
 	runtime.SetFinalizer(res, func(s *DBStorage) {
-		log.Println("DBStorage::storageFinalizer::info: started")
+		log.Println("DBStorage::New::info: finalizer started")
 		defer s.db.Close()
 	})
 

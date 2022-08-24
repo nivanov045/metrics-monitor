@@ -1,12 +1,10 @@
 package service
 
 import (
-	"crypto/hmac"
-	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
 	"errors"
-	"fmt"
+	"github.com/nivanov045/silver-octo-train/cmd/server/crypto"
 	"log"
 
 	"github.com/nivanov045/silver-octo-train/internal/metrics"
@@ -21,13 +19,19 @@ type Storage interface {
 	SetGaugeMetrics(name string, val metrics.Gauge) error
 }
 
+type Crypto interface {
+	CheckHash(m metrics.Interface) bool
+	CreateHash(m metrics.Interface) []byte
+}
+
 type service struct {
-	storage Storage
-	key     string
+	storage   Storage
+	crypto    Crypto
+	useCrypto bool
 }
 
 func New(key string, storage Storage) *service {
-	return &service{storage: storage, key: key}
+	return &service{storage: storage, crypto: crypto.New(key), useCrypto: len(key) > 0}
 }
 
 const (
@@ -52,7 +56,7 @@ func (ser *service) ParseAndSave(s []byte) error {
 			log.Println("service::ParseAndSave::info: gauge value is empty")
 			return errors.New("wrong query")
 		}
-		if !ser.checkHash(m) {
+		if !ser.crypto.CheckHash(m) {
 			log.Println("service::ParseAndSave::info: wrong hash")
 			return errors.New("wrong hash")
 		}
@@ -67,7 +71,7 @@ func (ser *service) ParseAndSave(s []byte) error {
 			return errors.New("wrong query")
 		}
 		value := *m.Delta
-		if !ser.checkHash(m) {
+		if !ser.crypto.CheckHash(m) {
 			log.Println("service::ParseAndSave::info: wrong hash")
 			return errors.New("wrong hash")
 		}
@@ -113,8 +117,8 @@ func (ser *service) ParseAndGet(s []byte) ([]byte, error) {
 		}
 		asFloat := float64(val)
 		m.Value = &asFloat
-		if len(ser.key) > 0 {
-			m.Hash = hex.EncodeToString(createHash([]byte(ser.key), m))
+		if ser.useCrypto {
+			m.Hash = hex.EncodeToString(ser.crypto.CreateHash(m))
 		}
 		marshal, err := json.Marshal(m)
 		if err != nil {
@@ -130,8 +134,8 @@ func (ser *service) ParseAndGet(s []byte) ([]byte, error) {
 		}
 		asint := int64(val)
 		m.Delta = &asint
-		if len(ser.key) > 0 {
-			m.Hash = hex.EncodeToString(createHash([]byte(ser.key), m))
+		if ser.useCrypto {
+			m.Hash = hex.EncodeToString(ser.crypto.CreateHash(m))
 		}
 		marshal, err := json.Marshal(m)
 		if err != nil {
@@ -142,26 +146,6 @@ func (ser *service) ParseAndGet(s []byte) ([]byte, error) {
 	}
 	log.Println("service::ParseAndGet::info: unknown metrics type")
 	return nil, errors.New("wrong metrics type")
-}
-
-func (ser *service) checkHash(m metrics.Interface) bool {
-	hash := createHash([]byte(ser.key), m)
-	received, _ := hex.DecodeString(m.Hash)
-	if len(ser.key) > 0 && !hmac.Equal(received, hash) {
-		log.Println("service::checkHash::info: wrong hash")
-		return false
-	}
-	return true
-}
-
-func createHash(key []byte, m metrics.Interface) []byte {
-	h := hmac.New(sha256.New, key)
-	if m.MType == gauge {
-		h.Write([]byte(fmt.Sprintf("%s:gauge:%f", m.ID, *m.Value)))
-	} else {
-		h.Write([]byte(fmt.Sprintf("%s:counter:%d", m.ID, *m.Delta)))
-	}
-	return h.Sum(nil)
 }
 
 func (ser *service) GetKnownMetrics() []string {
@@ -190,7 +174,7 @@ func (ser *service) ParseAndSaveSeveral(s []byte) error {
 				log.Println("service::ParseAndSaveSeveral::info: gauge value is empty")
 				continue
 			}
-			if !ser.checkHash(m) {
+			if !ser.crypto.CheckHash(m) {
 				log.Println("service::ParseAndSaveSeveral::info: wrong hash")
 				continue
 			}
@@ -205,7 +189,7 @@ func (ser *service) ParseAndSaveSeveral(s []byte) error {
 				continue
 			}
 			value := *m.Delta
-			if !ser.checkHash(m) {
+			if !ser.crypto.CheckHash(m) {
 				log.Println("service::ParseAndSaveSeveral::info: wrong hash")
 				continue
 			}
