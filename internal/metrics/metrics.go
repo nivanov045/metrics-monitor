@@ -63,4 +63,7 @@ var KnownMetrics = [...]string{
 	"TotalAlloc",
 	"RandomValue",
 	"PollCount",
+	"TotalMemory",
+	"FreeMemory",
+	"CPUutilization1",
 }

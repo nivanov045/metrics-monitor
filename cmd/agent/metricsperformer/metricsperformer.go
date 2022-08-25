@@ -1,8 +1,12 @@
 package metricsperformer
 
 import (
+	"log"
 	"math/rand"
 	"runtime"
+
+	"github.com/shirou/gopsutil/v3/cpu"
+	"github.com/shirou/gopsutil/v3/mem"
 
 	"github.com/nivanov045/silver-octo-train/internal/metrics"
 )
@@ -13,7 +17,7 @@ func New() *metricsPerformer {
 	return &metricsPerformer{}
 }
 
-func (*metricsPerformer) UpdateMetrics(m metrics.Metrics) {
+func (*metricsPerformer) UpdateRuntimeMetrics(m metrics.Metrics) {
 	var memStat runtime.MemStats
 	runtime.ReadMemStats(&memStat)
 	for _, val := range metrics.KnownMetrics {
@@ -78,4 +82,25 @@ func (*metricsPerformer) UpdateMetrics(m metrics.Metrics) {
 			m.CounterMetrics["PollCount"]++
 		}
 	}
+}
+
+func (*metricsPerformer) UpdateAdditionalMetrics(m metrics.Metrics) error {
+	v, _ := mem.VirtualMemory()
+	var err error = nil
+	for _, val := range metrics.KnownMetrics {
+		switch val {
+		case "TotalMemory":
+			m.GaugeMetrics["TotalMemory"] = metrics.Gauge(v.Total)
+		case "FreeMemory":
+			m.GaugeMetrics["FreeMemory"] = metrics.Gauge(v.Free)
+		case "CPUutilization1":
+			res, errIn := cpu.Counts(true)
+			if errIn != nil {
+				log.Println("metricsperformer::UpdateAdditionalMetrics::error:", errIn)
+				err = errIn
+			}
+			m.GaugeMetrics["CPUutilization1"] = metrics.Gauge(res)
+		}
+	}
+	return err
 }

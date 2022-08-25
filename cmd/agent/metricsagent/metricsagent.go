@@ -30,23 +30,47 @@ func New(c config.Config) *metricsagent {
 	}
 }
 
-func (a *metricsagent) updateMetrics() {
+func (a *metricsagent) updateRuntimeMetrics() {
 	ticker := time.NewTicker(a.config.PollInterval)
 	ctx := context.Background()
 	for {
 		select {
 		case <-ctx.Done():
-			log.Println("metricsagent::updateMetrics::info: ctx.Done")
+			log.Println("metricsagent::updateRuntimeMetrics::info: ctx.Done")
 			return
 		case <-ticker.C:
-			log.Println("metricsagent::updateMetrics::info: start update")
+			log.Println("metricsagent::updateRuntimeMetrics::info: start update")
 			mOriginal := <-a.metricsChannel
 			mCopy := mOriginal.Clone()
 			a.metricsChannel <- mOriginal
-			metricsperformer.New().UpdateMetrics(mCopy)
+			metricsperformer.New().UpdateRuntimeMetrics(mCopy)
 			<-a.metricsChannel
 			a.metricsChannel <- mCopy
-			log.Println("metricsagent::updateMetrics::info: finish update")
+			log.Println("metricsagent::updateRuntimeMetrics::info: finish update")
+		}
+	}
+}
+
+func (a *metricsagent) updateAdditionalMetrics() {
+	ticker := time.NewTicker(a.config.PollInterval)
+	ctx := context.Background()
+	for {
+		select {
+		case <-ctx.Done():
+			log.Println("metricsagent::updateAdditionalMetrics::info: ctx.Done")
+			return
+		case <-ticker.C:
+			log.Println("metricsagent::updateAdditionalMetrics::info: start update")
+			mOriginal := <-a.metricsChannel
+			mCopy := mOriginal.Clone()
+			a.metricsChannel <- mOriginal
+			err := metricsperformer.New().UpdateAdditionalMetrics(mCopy)
+			if err != nil {
+				log.Println("metricsagent::updateAdditionalMetrics::error:", err)
+			}
+			<-a.metricsChannel
+			a.metricsChannel <- mCopy
+			log.Println("metricsagent::updateAdditionalMetrics::info: finish update")
 		}
 	}
 }
@@ -130,7 +154,8 @@ func (a *metricsagent) Start() {
 		GaugeMetrics:   map[string]metrics.Gauge{},
 		CounterMetrics: map[string]metrics.Counter{},
 	}
-	go a.updateMetrics()
+	go a.updateRuntimeMetrics()
+	go a.updateAdditionalMetrics()
 	go a.sendSeveralMetrics()
 }
 
