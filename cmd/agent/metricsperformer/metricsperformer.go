@@ -94,12 +94,13 @@ func (*metricsPerformer) UpdateAdditionalMetrics(m metrics.Metrics) error {
 		case "FreeMemory":
 			m.GaugeMetrics["FreeMemory"] = metrics.Gauge(v.Free)
 		case "CPUutilization1":
-			res, errIn := cpu.Counts(true)
+			res, errIn := cpu.Percent(0, true)
 			if errIn != nil {
 				log.Println("metricsperformer::UpdateAdditionalMetrics::error:", errIn)
 				err = errIn
+			} else {
+				m.GaugeMetrics["CPUutilization1"] = metrics.Gauge(res[0])
 			}
-			m.GaugeMetrics["CPUutilization1"] = metrics.Gauge(res)
 		}
 	}
 	return err

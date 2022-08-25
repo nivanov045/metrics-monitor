@@ -140,10 +140,8 @@ func createHash(key []byte, m metrics.Interface) []byte {
 	h := hmac.New(sha256.New, key)
 	if m.MType == "gauge" {
 		h.Write([]byte(fmt.Sprintf("%s:gauge:%f", m.ID, *m.Value)))
-		log.Println("metricsagent::createHash: hash by", fmt.Sprintf("%s:gauge:%f", m.ID, *m.Value), "with key", key)
 	} else {
 		h.Write([]byte(fmt.Sprintf("%s:counter:%d", m.ID, *m.Delta)))
-		log.Println("metricsagent::createHash: hash by", fmt.Sprintf("%s:counter:%d", m.ID, *m.Delta), "with key", key)
 	}
 	return h.Sum(nil)
 }
