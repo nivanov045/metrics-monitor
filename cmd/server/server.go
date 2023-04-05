@@ -24,7 +24,10 @@ func main() {
 		log.Println(`server::main::warning: can't create database; fallback to inmemory storage`)
 		myStorage = storage.NewForcedInMemory(cfg)
 	}
+
 	serv := service.New(cfg.Key, myStorage)
+
 	myapi := api.New(serv)
+
 	log.Fatalln(myapi.Run(cfg.Address))
 }

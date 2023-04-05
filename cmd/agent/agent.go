@@ -1,12 +1,13 @@
 package main
 
 import (
-	"github.com/nivanov045/silver-octo-train/cmd/agent/config"
-	"github.com/nivanov045/silver-octo-train/cmd/agent/metricsagent"
 	"log"
 	"os"
 	"os/signal"
 	"syscall"
+
+	"github.com/nivanov045/silver-octo-train/cmd/agent/config"
+	"github.com/nivanov045/silver-octo-train/cmd/agent/metricsagent"
 )
 
 func main() {
