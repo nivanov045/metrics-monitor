@@ -44,7 +44,6 @@ func (a *api) updateMetricsHandler(w http.ResponseWriter, r *http.Request) {
 	log.Println("api::updateMetricsHandler::info: started")
 
 	w.Header().Set("content-type", "application/json")
-	w.Write([]byte("{}"))
 
 	defer r.Body.Close()
 	respBody, err := io.ReadAll(r.Body)
@@ -67,12 +66,14 @@ func (a *api) updateMetricsHandler(w http.ResponseWriter, r *http.Request) {
 		default:
 			w.WriteHeader(http.StatusNotFound)
 		}
+		w.Write([]byte("{}"))
 		return
 	}
 
 	log.Println("api::updateMetricsHandler::info: parsed and saved")
 
 	w.WriteHeader(http.StatusOK)
+	w.Write([]byte("{}"))
 }
 
 func (a *api) getMetricsHandler(w http.ResponseWriter, r *http.Request) {
