@@ -89,7 +89,7 @@ func (a *metricsagent) sendMetrics() {
 			a.metricsChannel <- mOriginal
 			for key, val := range m.GaugeMetrics {
 				asFloat := float64(val)
-				metricForSend := metrics.Interface{
+				metricForSend := metrics.Metric{
 					ID:    key,
 					MType: "gauge",
 					Delta: nil,
@@ -111,7 +111,7 @@ func (a *metricsagent) sendMetrics() {
 			}
 			pc := m.CounterMetrics["PollCount"]
 			asInt := int64(pc)
-			metricForSend := metrics.Interface{
+			metricForSend := metrics.Metric{
 				ID:    "PollCount",
 				MType: "counter",
 				Delta: &asInt,
@@ -136,7 +136,7 @@ func (a *metricsagent) sendMetrics() {
 	}
 }
 
-func createHash(key []byte, m metrics.Interface) []byte {
+func createHash(key []byte, m metrics.Metric) []byte {
 	h := hmac.New(sha256.New, key)
 	if m.MType == "gauge" {
 		h.Write([]byte(fmt.Sprintf("%s:gauge:%f", m.ID, *m.Value)))
@@ -169,10 +169,10 @@ func (a *metricsagent) sendSeveralMetrics() {
 			mOriginal := <-a.metricsChannel
 			m := mOriginal.Clone()
 			a.metricsChannel <- mOriginal
-			var toSend []metrics.Interface
+			var toSend []metrics.Metric
 			for key, val := range m.GaugeMetrics {
 				asFloat := float64(val)
-				metricForSend := metrics.Interface{
+				metricForSend := metrics.Metric{
 					ID:    key,
 					MType: "gauge",
 					Delta: nil,
@@ -186,7 +186,7 @@ func (a *metricsagent) sendSeveralMetrics() {
 			}
 			pc := m.CounterMetrics["PollCount"]
 			asInt := int64(pc)
-			metricForSend := metrics.Interface{
+			metricForSend := metrics.Metric{
 				ID:    "PollCount",
 				MType: "counter",
 				Delta: &asInt,

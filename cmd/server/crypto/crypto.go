@@ -18,7 +18,7 @@ func New(key string) *crypto {
 	return &crypto{key: key}
 }
 
-func (crypto *crypto) CheckHash(m metrics.Interface) bool {
+func (crypto *crypto) CheckHash(m metrics.Metric) bool {
 	hash := crypto.CreateHash(m)
 	received, _ := hex.DecodeString(m.Hash)
 	if len(crypto.key) > 0 && !hmac.Equal(received, hash) {
@@ -28,7 +28,7 @@ func (crypto *crypto) CheckHash(m metrics.Interface) bool {
 	return true
 }
 
-func (crypto *crypto) CreateHash(m metrics.Interface) []byte {
+func (crypto *crypto) CreateHash(m metrics.Metric) []byte {
 	h := hmac.New(sha256.New, []byte(crypto.key))
 	if m.MType == "gauge" {
 		h.Write([]byte(fmt.Sprintf("%s:gauge:%f", m.ID, *m.Value)))

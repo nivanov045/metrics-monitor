@@ -2,7 +2,6 @@ package api
 
 import (
 	"encoding/json"
-	"github.com/nivanov045/silver-octo-train/cmd/server/config"
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
@@ -13,6 +12,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"github.com/nivanov045/silver-octo-train/cmd/server/config"
 	"github.com/nivanov045/silver-octo-train/cmd/server/service"
 	"github.com/nivanov045/silver-octo-train/cmd/server/storage"
 	"github.com/nivanov045/silver-octo-train/internal/metrics"
@@ -83,7 +83,7 @@ func Test_api_updateMetricsHandler(t *testing.T) {
 	a := api{serv}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			marshal, err := json.Marshal(metrics.Interface{
+			marshal, err := json.Marshal(metrics.Metric{
 				ID:    tt.args.name,
 				MType: tt.args.mType,
 				Delta: &tt.args.valueInt,
@@ -123,7 +123,7 @@ func Test_api_getMetricsHandler(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			value := int64(100)
-			marshal, err := json.Marshal(metrics.Interface{
+			marshal, err := json.Marshal(metrics.Metric{
 				ID:    "TestMetrics",
 				MType: "counter",
 				Delta: &value,
@@ -144,7 +144,7 @@ func Test_api_getMetricsHandler(t *testing.T) {
 			require.NoError(t, err)
 			defer result.Body.Close()
 			assert.Equal(t, http.StatusOK, result.StatusCode)
-			var mi metrics.Interface
+			var mi metrics.Metric
 			err = json.Unmarshal(respBody, &mi)
 			require.NoError(t, err)
 			assert.Equal(t, int64(100), *mi.Delta)
@@ -176,7 +176,7 @@ func Test_api_rootHandler(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			value := int64(100)
-			marshal, err := json.Marshal(metrics.Interface{
+			marshal, err := json.Marshal(metrics.Metric{
 				ID:    "TestMetrics",
 				MType: "counter",
 				Delta: &value,
