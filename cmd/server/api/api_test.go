@@ -2,7 +2,7 @@ package api
 
 import (
 	"encoding/json"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -140,7 +140,7 @@ func Test_api_getMetricsHandler(t *testing.T) {
 			h.ServeHTTP(w, request)
 			result := w.Result()
 
-			respBody, err := ioutil.ReadAll(result.Body)
+			respBody, err := io.ReadAll(result.Body)
 			require.NoError(t, err)
 			defer result.Body.Close()
 			assert.Equal(t, http.StatusOK, result.StatusCode)
@@ -193,7 +193,7 @@ func Test_api_rootHandler(t *testing.T) {
 			h.ServeHTTP(w, request)
 			result := w.Result()
 
-			respBody, err := ioutil.ReadAll(result.Body)
+			respBody, err := io.ReadAll(result.Body)
 			require.NoError(t, err)
 			defer result.Body.Close()
 

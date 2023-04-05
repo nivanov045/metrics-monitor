@@ -1,7 +1,7 @@
 package api
 
 import (
-	"io/ioutil"
+	"io"
 	"log"
 	"net/http"
 
@@ -47,7 +47,7 @@ func (a *api) updateMetricsHandler(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte("{}"))
 
 	defer r.Body.Close()
-	respBody, err := ioutil.ReadAll(r.Body)
+	respBody, err := io.ReadAll(r.Body)
 	if err != nil {
 		log.Println("api::updateMetricsHandler::warning: can't read response body with:", err)
 
@@ -81,7 +81,7 @@ func (a *api) getMetricsHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("content-type", "application/json")
 
 	defer r.Body.Close()
-	respBody, err := ioutil.ReadAll(r.Body)
+	respBody, err := io.ReadAll(r.Body)
 	if err != nil {
 		log.Println("api::getMetricsHandler::warning: can't read response body with:", err)
 		w.WriteHeader(http.StatusNotFound)
@@ -139,7 +139,7 @@ func (a *api) updatesMetricsHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("content-type", "application/json")
 
 	defer r.Body.Close()
-	respBody, err := ioutil.ReadAll(r.Body)
+	respBody, err := io.ReadAll(r.Body)
 	if err != nil {
 		log.Println("api::updatesMetricsHandler::warning can't read response body with:", err)
 
