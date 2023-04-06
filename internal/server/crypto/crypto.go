@@ -5,7 +5,8 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
-	"log"
+
+	"github.com/rs/zerolog/log"
 
 	"github.com/nivanov045/silver-octo-train/internal/metrics"
 )
@@ -21,10 +22,12 @@ func New(key string) *crypto {
 func (crypto *crypto) CheckHash(m metrics.Metric) bool {
 	hash := crypto.CreateHash(m)
 	received, _ := hex.DecodeString(m.Hash)
+
 	if len(crypto.key) > 0 && !hmac.Equal(received, hash) {
-		log.Println("crypto::checkHash::info: wrong hash")
+		log.Info().Msg("crypto::checkHash::info: wrong hash")
 		return false
 	}
+
 	return true
 }
 
@@ -35,5 +38,6 @@ func (crypto *crypto) CreateHash(m metrics.Metric) []byte {
 	} else {
 		h.Write([]byte(fmt.Sprintf("%s:counter:%d", m.ID, *m.Delta)))
 	}
+
 	return h.Sum(nil)
 }

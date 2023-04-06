@@ -1,23 +1,17 @@
 package metricsperformer
 
 import (
-	"log"
 	"math/rand"
 	"runtime"
 
+	"github.com/rs/zerolog/log"
 	"github.com/shirou/gopsutil/v3/cpu"
 	"github.com/shirou/gopsutil/v3/mem"
 
 	"github.com/nivanov045/silver-octo-train/internal/metrics"
 )
 
-type metricsPerformer struct{}
-
-func New() *metricsPerformer {
-	return &metricsPerformer{}
-}
-
-func (*metricsPerformer) UpdateRuntimeMetrics(m metrics.Metrics) {
+func UpdateRuntimeMetrics(m metrics.Metrics) {
 	var memStat runtime.MemStats
 	runtime.ReadMemStats(&memStat)
 	for _, val := range metrics.KnownMetrics {
@@ -84,9 +78,8 @@ func (*metricsPerformer) UpdateRuntimeMetrics(m metrics.Metrics) {
 	}
 }
 
-func (*metricsPerformer) UpdateAdditionalMetrics(m metrics.Metrics) error {
+func UpdateAdditionalMetrics(m metrics.Metrics) error {
 	v, _ := mem.VirtualMemory()
-	var err error = nil
 	for _, val := range metrics.KnownMetrics {
 		switch val {
 		case "TotalMemory":
@@ -94,14 +87,14 @@ func (*metricsPerformer) UpdateAdditionalMetrics(m metrics.Metrics) error {
 		case "FreeMemory":
 			m.GaugeMetrics["FreeMemory"] = metrics.Gauge(v.Free)
 		case "CPUutilization1":
-			res, errIn := cpu.Percent(0, true)
-			if errIn != nil {
-				log.Println("metricsperformer::UpdateAdditionalMetrics::error:", errIn)
-				err = errIn
+			res, err := cpu.Percent(0, true)
+			if err != nil {
+				log.Error().Err(err).Stack()
+				return err
 			} else {
 				m.GaugeMetrics["CPUutilization1"] = metrics.Gauge(res[0])
 			}
 		}
 	}
-	return err
+	return nil
 }

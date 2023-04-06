@@ -2,10 +2,10 @@ package config
 
 import (
 	"flag"
-	"log"
 	"time"
 
 	"github.com/caarlos0/env/v6"
+	"github.com/rs/zerolog/log"
 )
 
 type Config struct {
@@ -37,7 +37,8 @@ func (cfg *Config) buildFromFlags() {
 func (cfg *Config) buildFromEnv() error {
 	err := env.Parse(cfg)
 	if err != nil {
-		log.Println("serverconfig::buildFromEnv::error: in env parsing:", err)
+		log.Error().Err(err).Stack()
 	}
+
 	return err
 }

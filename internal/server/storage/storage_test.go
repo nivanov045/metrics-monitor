@@ -5,8 +5,8 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"github.com/nivanov045/silver-octo-train/cmd/server/storage/inmemorystorage"
 	"github.com/nivanov045/silver-octo-train/internal/metrics"
+	"github.com/nivanov045/silver-octo-train/internal/server/storage/inmemorystorage"
 )
 
 func Test_storage_SetGetCounterMetrics(t *testing.T) {

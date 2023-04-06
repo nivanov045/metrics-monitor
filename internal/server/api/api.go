@@ -2,11 +2,11 @@ package api
 
 import (
 	"io"
-	"log"
 	"net/http"
 
 	"github.com/go-chi/chi/middleware"
 	"github.com/go-chi/chi/v5"
+	"github.com/rs/zerolog/log"
 )
 
 type api struct {
@@ -20,7 +20,7 @@ func New(service Service) *api {
 var _ API = &api{}
 
 func (a *api) Run(address string) error {
-	log.Println("api::Run::info: started with addr:", address)
+	log.Info().Interface("address", address).Msg("server started")
 
 	r := chi.NewRouter()
 
@@ -41,14 +41,14 @@ func (a *api) Run(address string) error {
 }
 
 func (a *api) updateMetricsHandler(w http.ResponseWriter, r *http.Request) {
-	log.Println("api::updateMetricsHandler::info: started")
+	log.Debug().Msg("updating of metrics started")
 
 	w.Header().Set("content-type", "application/json")
 
 	defer r.Body.Close()
 	respBody, err := io.ReadAll(r.Body)
 	if err != nil {
-		log.Println("api::updateMetricsHandler::warning: can't read response body with:", err)
+		log.Error().Err(err).Stack()
 
 		w.WriteHeader(http.StatusNotFound)
 		return
@@ -56,7 +56,7 @@ func (a *api) updateMetricsHandler(w http.ResponseWriter, r *http.Request) {
 
 	err = a.service.ParseAndSave(respBody)
 	if err != nil {
-		log.Println("api::updateMetricsHandler::warning: in parsing and saving:", err)
+		log.Error().Err(err)
 
 		switch err.Error() {
 		case "wrong metrics type":
@@ -70,28 +70,28 @@ func (a *api) updateMetricsHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	log.Println("api::updateMetricsHandler::info: parsed and saved")
+	log.Debug().Msg("parsed and saved")
 
 	w.WriteHeader(http.StatusOK)
 	w.Write([]byte("{}"))
 }
 
 func (a *api) getMetricsHandler(w http.ResponseWriter, r *http.Request) {
-	log.Println("api::getMetricsHandler::info: started")
+	log.Debug().Msg("getting of metrics started")
 
 	w.Header().Set("content-type", "application/json")
 
 	defer r.Body.Close()
 	respBody, err := io.ReadAll(r.Body)
 	if err != nil {
-		log.Println("api::getMetricsHandler::warning: can't read response body with:", err)
+		log.Error().Err(err).Stack()
 		w.WriteHeader(http.StatusNotFound)
 		return
 	}
 
 	val, err := a.service.ParseAndGet(respBody)
 	if err != nil {
-		log.Println("api::getMetricsHandler::warning: in parsing:", err)
+		log.Error().Err(err)
 
 		switch err.Error() {
 		case "wrong metrics type":
@@ -106,14 +106,14 @@ func (a *api) getMetricsHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	log.Println("api::getMetricsHandler::info: parsed and get")
+	log.Debug().Msg("parsed and get")
 
 	w.WriteHeader(http.StatusOK)
 	w.Write(val)
 }
 
 func (a *api) rootHandler(w http.ResponseWriter, _ *http.Request) {
-	log.Println("api::rootHandler::info: started")
+	log.Debug().Msg("rootHandler started")
 
 	w.Header().Set("content-type", "text/html")
 	for _, val := range a.service.GetKnownMetrics() {
@@ -122,7 +122,7 @@ func (a *api) rootHandler(w http.ResponseWriter, _ *http.Request) {
 }
 
 func (a *api) pingDBHandler(w http.ResponseWriter, _ *http.Request) {
-	log.Println("api::pingDBHandler::info: started")
+	log.Debug().Msg("pingDBHandler started")
 
 	w.Header().Set("content-type", "text/html")
 
@@ -135,14 +135,14 @@ func (a *api) pingDBHandler(w http.ResponseWriter, _ *http.Request) {
 }
 
 func (a *api) updatesMetricsHandler(w http.ResponseWriter, r *http.Request) {
-	log.Println("api::updatesMetricsHandler::info: started")
+	log.Debug().Msg("updatesMetricsHandler started")
 
 	w.Header().Set("content-type", "application/json")
 
 	defer r.Body.Close()
 	respBody, err := io.ReadAll(r.Body)
 	if err != nil {
-		log.Println("api::updatesMetricsHandler::warning can't read response body with:", err)
+		log.Error().Err(err).Stack()
 
 		w.WriteHeader(http.StatusNotFound)
 		w.Write([]byte("{}"))
@@ -151,13 +151,13 @@ func (a *api) updatesMetricsHandler(w http.ResponseWriter, r *http.Request) {
 
 	err = a.service.ParseAndSaveSeveral(respBody)
 	if err != nil {
-		log.Println("api::updatesMetricsHandler::warning: wrong group query:", err)
+		log.Error().Err(err).Stack()
 
 		w.WriteHeader(http.StatusNotFound)
 		w.Write([]byte("{}"))
 		return
 	}
-	log.Println("api::updatesMetricsHandler::info: parsed and saved")
+	log.Debug().Msg("parsed and saved several")
 
 	w.WriteHeader(http.StatusOK)
 	w.Write([]byte("{}"))

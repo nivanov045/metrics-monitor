@@ -2,11 +2,12 @@ package inmemorystorage
 
 import (
 	"encoding/json"
-	"log"
 	"os"
 	"runtime"
 	"sync"
 	"time"
+
+	"github.com/rs/zerolog/log"
 
 	"github.com/nivanov045/silver-octo-train/internal/metrics"
 )
@@ -38,21 +39,23 @@ func New(storeInterval time.Duration, storeFile string, restore bool) *InMemoryS
 		res.doRestore()
 	}
 	runtime.SetFinalizer(res, func(s *InMemoryStorage) {
-		log.Println("InMemoryStorage::StorageFinalizer::info: started")
+		log.Debug().Msg("StorageFinalizer started")
 		s.doSave()
 	})
+
 	if res.storeInterval > 0*time.Second {
 		go res.saveByTimer()
 	} else {
 		res.syncSave = true
 	}
+
 	return res
 }
 
 func (s *InMemoryStorage) doRestore() {
 	err := s.restoreFromFile()
 	if err != nil {
-		log.Println("storage::doRestore error:", err)
+		log.Error().Err(err).Stack()
 	}
 }
 
@@ -61,27 +64,31 @@ func (s *InMemoryStorage) restoreFromFile() error {
 	defer s.mu.Unlock()
 	file, err := os.OpenFile(s.storeFile, os.O_RDONLY|os.O_CREATE, 0777)
 	if err != nil {
-		log.Println("InMemoryStorage::restoreFromFile::warning: can't open file:", err)
+		log.Error().Err(err).Stack()
 		return err
 	}
+
 	defer file.Close()
+
 	encoder := json.NewDecoder(file)
 	err = encoder.Decode(&s.Metrics)
 	if err != nil {
-		log.Println("InMemoryStorage::restoreFromFile::warning: can't read from file:", err)
+		log.Error().Err(err).Stack()
 		return err
 	}
+
 	return nil
 }
 
 func (s *InMemoryStorage) SetCounterMetrics(name string, val metrics.Counter) error {
-	log.Println("InMemoryStorage::SetCounterMetrics::info: started")
+	log.Debug().Msg("SetCounterMetrics started")
 	s.Metrics.CounterMetrics[name] = val
 	if s.syncSave {
 		s.doSave()
 	} else {
 		s.hasUpdates = true
 	}
+
 	return nil
 }
 
@@ -93,7 +100,7 @@ func (s *InMemoryStorage) GetCounterMetrics(name string) (metrics.Counter, bool)
 }
 
 func (s *InMemoryStorage) SetGaugeMetrics(name string, val metrics.Gauge) error {
-	log.Println("InMemoryStorage::SetGaugeMetrics::info: started")
+	log.Debug().Msg("SetGaugeMetrics started")
 	s.Metrics.GaugeMetrics[name] = val
 	if s.syncSave {
 		s.doSave()
@@ -125,7 +132,7 @@ func (s *InMemoryStorage) saveByTimer() {
 	ticker := time.NewTicker(s.storeInterval)
 	for {
 		<-ticker.C
-		log.Println("InMemoryStorage::saveByTimer::info: ticker")
+		log.Debug().Msg("saveByTimer ticker")
 		s.doSave()
 	}
 }
@@ -133,31 +140,37 @@ func (s *InMemoryStorage) saveByTimer() {
 func (s *InMemoryStorage) doSave() {
 	err := s.saveToFile()
 	if err != nil {
-		log.Println("InMemoryStorage::doSave::warning:", err)
+		log.Error().Err(err).Stack()
 	}
 }
 
 func (s *InMemoryStorage) saveToFile() error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	log.Println("InMemoryStorage::saveToFile::info: started")
+	log.Debug().Msg("saveToFile started")
+
 	if !s.syncSave && !s.hasUpdates {
-		log.Println("InMemoryStorage::saveToFile::info: nothing to update")
+		log.Debug().Msg("nothing to update")
 		return nil
 	}
+
 	file, err := os.OpenFile(s.storeFile, os.O_WRONLY|os.O_CREATE, 0777)
 	if err != nil {
-		log.Println("InMemoryStorage::saveToFile::error: can't open file:", err)
+		log.Error().Err(err).Stack()
 		return err
 	}
+
 	defer file.Close()
+
 	encoder := json.NewEncoder(file)
 	err = encoder.Encode(&s.Metrics)
 	if err != nil {
-		log.Println("InMemoryStorage::saveToFile::error: can't write to file:", err)
+		log.Error().Err(err).Stack()
 		return err
 	}
+
 	s.hasUpdates = false
+
 	return nil
 }
 
