@@ -8,7 +8,7 @@ import (
 	"github.com/shirou/gopsutil/v3/cpu"
 	"github.com/shirou/gopsutil/v3/mem"
 
-	"github.com/nivanov045/silver-octo-train/internal/metrics"
+	"github.com/nivanov045/metrics-monitor/internal/metrics"
 )
 
 func UpdateRuntimeMetrics(m metrics.Metrics) {

@@ -11,10 +11,10 @@ import (
 
 	"github.com/rs/zerolog/log"
 
-	"github.com/nivanov045/silver-octo-train/internal/agent/config"
-	"github.com/nivanov045/silver-octo-train/internal/agent/metricsperformer"
-	"github.com/nivanov045/silver-octo-train/internal/agent/requester"
-	"github.com/nivanov045/silver-octo-train/internal/metrics"
+	"github.com/nivanov045/metrics-monitor/internal/agent/config"
+	"github.com/nivanov045/metrics-monitor/internal/agent/metricsperformer"
+	"github.com/nivanov045/metrics-monitor/internal/agent/requester"
+	"github.com/nivanov045/metrics-monitor/internal/metrics"
 )
 
 type metricsagent struct {

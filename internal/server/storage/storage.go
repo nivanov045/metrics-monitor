@@ -3,10 +3,10 @@ package storage
 import (
 	_ "github.com/lib/pq"
 
-	"github.com/nivanov045/silver-octo-train/internal/metrics"
-	"github.com/nivanov045/silver-octo-train/internal/server/config"
-	"github.com/nivanov045/silver-octo-train/internal/server/storage/dbstorage"
-	"github.com/nivanov045/silver-octo-train/internal/server/storage/inmemorystorage"
+	"github.com/nivanov045/metrics-monitor/internal/metrics"
+	"github.com/nivanov045/metrics-monitor/internal/server/config"
+	"github.com/nivanov045/metrics-monitor/internal/server/storage/dbstorage"
+	"github.com/nivanov045/metrics-monitor/internal/server/storage/inmemorystorage"
 )
 
 type storage struct {

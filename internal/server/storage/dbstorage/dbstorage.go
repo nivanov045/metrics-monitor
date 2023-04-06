@@ -9,7 +9,7 @@ import (
 
 	"github.com/rs/zerolog/log"
 
-	"github.com/nivanov045/silver-octo-train/internal/metrics"
+	"github.com/nivanov045/metrics-monitor/internal/metrics"
 )
 
 const checkColumnQuery = `SELECT EXISTS (SELECT column_name FROM information_schema.columns WHERE table_name='metrics' and column_name=$1);`

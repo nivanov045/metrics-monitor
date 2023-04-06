@@ -7,8 +7,8 @@ import (
 
 	"github.com/rs/zerolog/log"
 
-	"github.com/nivanov045/silver-octo-train/internal/metrics"
-	"github.com/nivanov045/silver-octo-train/internal/server/crypto"
+	"github.com/nivanov045/metrics-monitor/internal/metrics"
+	"github.com/nivanov045/metrics-monitor/internal/server/crypto"
 )
 
 type service struct {

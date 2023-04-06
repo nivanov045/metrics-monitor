@@ -8,7 +8,7 @@ import (
 
 	"github.com/rs/zerolog/log"
 
-	"github.com/nivanov045/silver-octo-train/internal/metrics"
+	"github.com/nivanov045/metrics-monitor/internal/metrics"
 )
 
 type crypto struct {

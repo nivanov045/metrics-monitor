@@ -1,6 +1,6 @@
 package storage
 
-import "github.com/nivanov045/silver-octo-train/internal/metrics"
+import "github.com/nivanov045/metrics-monitor/internal/metrics"
 
 type InnerStorage interface {
 	SetGaugeMetrics(name string, val metrics.Gauge) error

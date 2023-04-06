@@ -1,4 +1,4 @@
-module github.com/nivanov045/silver-octo-train
+module github.com/nivanov045/metrics-monitor
 
 go 1.18
 

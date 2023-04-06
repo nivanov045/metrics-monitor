@@ -5,7 +5,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"github.com/nivanov045/silver-octo-train/internal/metrics"
+	"github.com/nivanov045/metrics-monitor/internal/metrics"
 )
 
 func Test_metricsPerformer_UpdateMetrics(t *testing.T) {

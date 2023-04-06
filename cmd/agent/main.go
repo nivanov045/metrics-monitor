@@ -9,8 +9,8 @@ import (
 	"github.com/rs/zerolog/log"
 	"github.com/rs/zerolog/pkgerrors"
 
-	"github.com/nivanov045/silver-octo-train/internal/agent/config"
-	"github.com/nivanov045/silver-octo-train/internal/agent/metricsagent"
+	"github.com/nivanov045/metrics-monitor/internal/agent/config"
+	"github.com/nivanov045/metrics-monitor/internal/agent/metricsagent"
 )
 
 func main() {

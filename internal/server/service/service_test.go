@@ -8,10 +8,10 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"github.com/nivanov045/silver-octo-train/internal/metrics"
-	"github.com/nivanov045/silver-octo-train/internal/server/config"
-	"github.com/nivanov045/silver-octo-train/internal/server/crypto"
-	"github.com/nivanov045/silver-octo-train/internal/server/storage"
+	"github.com/nivanov045/metrics-monitor/internal/metrics"
+	"github.com/nivanov045/metrics-monitor/internal/server/config"
+	"github.com/nivanov045/metrics-monitor/internal/server/crypto"
+	"github.com/nivanov045/metrics-monitor/internal/server/storage"
 )
 
 func Test_service_ParseAndSave(t *testing.T) {

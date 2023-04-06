@@ -5,10 +5,10 @@ import (
 	"github.com/rs/zerolog/log"
 	"github.com/rs/zerolog/pkgerrors"
 
-	"github.com/nivanov045/silver-octo-train/internal/server/api"
-	"github.com/nivanov045/silver-octo-train/internal/server/config"
-	"github.com/nivanov045/silver-octo-train/internal/server/service"
-	"github.com/nivanov045/silver-octo-train/internal/server/storage"
+	"github.com/nivanov045/metrics-monitor/internal/server/api"
+	"github.com/nivanov045/metrics-monitor/internal/server/config"
+	"github.com/nivanov045/metrics-monitor/internal/server/service"
+	"github.com/nivanov045/metrics-monitor/internal/server/storage"
 )
 
 func main() {

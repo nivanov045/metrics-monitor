@@ -1,6 +1,6 @@
 package service
 
-import "github.com/nivanov045/silver-octo-train/internal/metrics"
+import "github.com/nivanov045/metrics-monitor/internal/metrics"
 
 type Storage interface {
 	GetCounterMetrics(name string) (metrics.Counter, bool)

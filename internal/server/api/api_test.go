@@ -12,10 +12,10 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/nivanov045/silver-octo-train/internal/metrics"
-	"github.com/nivanov045/silver-octo-train/internal/server/config"
-	"github.com/nivanov045/silver-octo-train/internal/server/service"
-	"github.com/nivanov045/silver-octo-train/internal/server/storage"
+	"github.com/nivanov045/metrics-monitor/internal/metrics"
+	"github.com/nivanov045/metrics-monitor/internal/server/config"
+	"github.com/nivanov045/metrics-monitor/internal/server/service"
+	"github.com/nivanov045/metrics-monitor/internal/server/storage"
 )
 
 func Test_api_updateMetricsHandler(t *testing.T) {
