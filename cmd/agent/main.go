@@ -15,7 +15,7 @@ import (
 
 func main() {
 	zerolog.ErrorStackMarshaler = pkgerrors.MarshalStack
-	zerolog.SetGlobalLevel(zerolog.DebugLevel)
+	zerolog.SetGlobalLevel(zerolog.InfoLevel)
 
 	log.Info().Msg("agent started")
 

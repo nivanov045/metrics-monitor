@@ -1,7 +1,9 @@
 package main
 
 import (
+	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
+	"github.com/rs/zerolog/pkgerrors"
 
 	"github.com/nivanov045/silver-octo-train/internal/server/api"
 	"github.com/nivanov045/silver-octo-train/internal/server/config"
@@ -10,6 +12,9 @@ import (
 )
 
 func main() {
+	zerolog.ErrorStackMarshaler = pkgerrors.MarshalStack
+	zerolog.SetGlobalLevel(zerolog.InfoLevel)
+
 	cfg, err := config.BuildConfig()
 	if err != nil {
 		log.Panic().Err(err).Stack()
